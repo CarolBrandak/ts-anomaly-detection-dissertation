@@ -4,3 +4,4 @@ PM2025-TSAnomalyDetection/
 __pycache__/
 .ipynb_checkpoints/
 data_processed/
+results/baze_cache/
