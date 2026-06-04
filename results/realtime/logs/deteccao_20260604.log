@@ -1,0 +1,50 @@
+2026-06-04 15:44:58 [INFO] [96m→ A pedir dados ao BaZe (276 CPEs)...[0m
+2026-06-04 15:45:01 [INFO] 
+2026-06-04 15:45:01 [INFO] [1m══════════════════════════════════════════════════════════════════════[0m
+2026-06-04 15:45:01 [INFO] [1m  DETEÇÃO DE ANOMALIAS — 2026-06-01[0m
+2026-06-04 15:45:01 [INFO] [1m══════════════════════════════════════════════════════════════════════[0m
+2026-06-04 15:45:01 [INFO]   [2mTipo de dia:[0m  dia util
+2026-06-04 15:45:01 [INFO]   [2mFonte:[0m        BAZE
+2026-06-04 15:45:01 [INFO]   [2mCPEs c/ dados:[0m 69
+2026-06-04 15:45:01 [INFO]   [2mThreshold:[0m    |z| > 2.0 [2m(adaptativo a este tipo de dia)[0m
+2026-06-04 15:45:01 [INFO] 
+2026-06-04 15:45:01 [INFO] [96m→ A analisar 69 CPEs (retrospetiva)...[0m
+2026-06-04 15:45:01 [INFO] [1m─── Resumo ─────────────────────────────────────[0m
+2026-06-04 15:45:01 [INFO]   [92m● Normal[0m                  66 [2m( 95.7%)[0m
+2026-06-04 15:45:01 [INFO]   [91m● Desvio (alta confiança)[0m    3 [2m(  4.3%)[0m
+2026-06-04 15:45:01 [INFO]   [93m● Desvio (baixa confiança)[0m   0 [2m(  0.0%)[0m
+2026-06-04 15:45:01 [INFO]   [2mTempo: 3.7s[0m
+2026-06-04 15:45:01 [INFO] 
+2026-06-04 15:45:01 [INFO] [1m─── Desvios de ALTA confiança (3) ───────────────────[0m
+2026-06-04 15:45:01 [INFO] 
+2026-06-04 15:45:01 [INFO]   🔴 [91m[1mPT0002000082549706RH[0m  [2m[Cluster 0][0m
+2026-06-04 15:45:01 [INFO]      consumiu MAIS que o habitual
+2026-06-04 15:45:01 [INFO]      [2mReal:[0m 9.2 kWh   [2mHabitual:[0m 5.9 ± 0.6 kWh   [2mz:[0m +5.45   [2mdesvio:[0m +56%   [2m(40 dias dia_util)[0m
+2026-06-04 15:45:01 [INFO] 
+2026-06-04 15:45:01 [INFO]   🔴 [91m[1mPT0002000112989585PH[0m  [2m[Cluster 0][0m
+2026-06-04 15:45:01 [INFO]      consumiu MAIS que o habitual
+2026-06-04 15:45:01 [INFO]      [2mReal:[0m 28.9 kWh   [2mHabitual:[0m 11.7 ± 4.1 kWh   [2mz:[0m +4.21   [2mdesvio:[0m +146%   [2m(40 dias dia_util)[0m
+2026-06-04 15:45:01 [INFO] 
+2026-06-04 15:45:01 [INFO]   🔵 [94m[1mPT0002000073717386HC[0m  [2m[sem cluster][0m
+2026-06-04 15:45:01 [INFO]      consumiu MENOS que o habitual
+2026-06-04 15:45:01 [INFO]      [2mReal:[0m 1.0 kWh   [2mHabitual:[0m 4.8 ± 1.3 kWh   [2mz:[0m -2.78   [2mdesvio:[0m -78%   [2m(40 dias dia_util)[0m
+2026-06-04 15:45:01 [INFO] 
+2026-06-04 15:45:01 [INFO]   [2mCSV:[0m C:\Users\gui30\OneDrive\Ambiente de Trabalho\dissertacao_anomalias\results\realtime\alerts\analise_2026-06-01.csv
+2026-06-04 15:45:01 [INFO] 
+2026-06-04 15:45:01 [INFO] [96m→ A prever consumo de 2026-06-02 para 276 CPEs...[0m
+2026-06-04 15:45:02 [INFO] [1m══════════════════════════════════════════════════════════════════════[0m
+2026-06-04 15:45:02 [INFO] [1m  PREDIÇÃO — 2026-06-02 [0m[2m(dia util)[0m
+2026-06-04 15:45:02 [INFO] [1m══════════════════════════════════════════════════════════════════════[0m
+2026-06-04 15:45:02 [INFO]   [95m● CPEs previstos[0m         276 [2m(alta: 276, baixa: 0)[0m
+2026-06-04 15:45:02 [INFO]   [95m● Consumo total previsto[0m  1447.2 kWh [2m(±275.5)[0m
+2026-06-04 15:45:02 [INFO] 
+2026-06-04 15:45:02 [INFO]   [2mPrevisão guardada:[0m C:\Users\gui30\OneDrive\Ambiente de Trabalho\dissertacao_anomalias\results\realtime\predictions\previsao_2026-06-02.csv
+2026-06-04 15:45:02 [INFO] 
+2026-06-04 15:45:02 [INFO] [1m══════════════════════════════════════════════════════════════════════[0m
+2026-06-04 15:45:02 [INFO] [1m  VALIDAÇÃO — qualidade das previsões anteriores[0m
+2026-06-04 15:45:02 [INFO] [1m══════════════════════════════════════════════════════════════════════[0m
+2026-06-04 15:45:02 [INFO]   [2mDias validados:[0m 13   [2mpendentes:[0m 1
+2026-06-04 15:45:02 [INFO]   [2mÚltimo (2026-06-01):[0m MAE 1.97 kWh   RMSE 3.87   em ±1σ 72% [2m(esperado ~68%)[0m   em ±2σ 96% [2m(esperado ~95%)[0m
+2026-06-04 15:45:02 [INFO]   [2mMédia acumulada:[0m MAE 2.04 kWh   RMSE 5.48   em ±1σ 69%   em ±2σ 88%
+2026-06-04 15:45:02 [INFO]   [2mCSV:[0m C:\Users\gui30\OneDrive\Ambiente de Trabalho\dissertacao_anomalias\results\realtime\analysis\qualidade_previsoes.csv
+2026-06-04 15:45:02 [INFO] 
