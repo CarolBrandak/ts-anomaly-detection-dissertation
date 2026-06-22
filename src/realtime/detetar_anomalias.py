@@ -1,67 +1,11 @@
 #!/usr/bin/env python3
 """
-detetar_anomalias.py
-═══════════════════════════════════════════════════════════════════════════
-Sistema diário de monitorização de consumo energético (CMMaia).
+detetar_anomalias.py — Monitorização diária do consumo energético (CMMaia).
 
-CENÁRIO:
-    Todos os dias às ~15h, o BaZe publica o consumo do dia anterior.
-    Este script responde a TRÊS perguntas, por esta ordem:
-
-      PARTE 1 — RETROSPETIVA: "Como foi ontem?"
-        Compara o consumo de ontem de cada CPE com o SEU PRÓPRIO histórico
-        para dias do mesmo tipo (útil / fim de semana / feriado):
-            z = (consumo_ontem - média_histórica_do_CPE) / std_do_CPE
-        Se |z| > threshold (adaptativo) → consumo atípico PARA ELE PRÓPRIO.
-
-      PARTE 2 — PREDIÇÃO: "O que esperar a seguir?"
-        Para cada CPE, prevê o consumo do dia seguinte (data+1) usando a
-        média histórica em dias do mesmo tipo. Guarda estimativa pontual +
-        intervalos ±1σ e ±2σ em predictions/previsao_YYYY-MM-DD.csv.
-        Esta é a "base de dados" de previsões que alimenta a Parte 3.
-
-      PARTE 3 — VALIDAÇÃO: "Quão boas foram as previsões anteriores?"
-        Procura previsões antigas para as quais já existe consumo real e
-        calcula MAE, MAPE, RMSE e a cobertura dos intervalos (% dentro de
-        ±1σ e ±2σ). Acumula tudo em analysis/qualidade_previsoes.csv.
-
-    A Parte 1 é a única que gera alertas (e governa o exit code).
-    As Partes 2 e 3 são silenciosas/informativas — produzem CSVs que o
-    notebook 'analise_tempo_real' consome para gerar as figuras da tese.
-
-CALIBRAÇÃO (alinhada com o notebook validado):
-    • Threshold ADAPTATIVO por tipo de dia:
-        - Dia útil:    z > 2.0   (muitos dados, calibração fina)
-        - Fim semana:  z > 2.5   (médio)
-        - Feriado:     z > 3.0   (poucos dados, exige mais evidência)
-    • Std mínimo PROPORCIONAL: max(std, 10% do habitual, 0.3) — evita
-      z-scores explosivos em CPEs com consumo muito constante.
-    • Z-score limitado a ±10 (acima disto é instabilidade estatística).
-    • Sistema de CONFIANÇA (alta/baixa):
-        - alta:  ≥10 dias históricos do MESMO tipo de dia
-        - baixa: menos do que isso, ou fallback para todo o histórico
-
-USO:
-    python detetar_anomalias.py                       # ontem, via BaZe
-    python detetar_anomalias.py --data 2026-05-17     # dia específico
-    python detetar_anomalias.py --modo zip            # usar ZIP histórico
-    python detetar_anomalias.py --plots               # gerar gráficos
-    python detetar_anomalias.py --quiet               # só desvios
-    python detetar_anomalias.py --so-alta-confianca   # ignora baixa confiança
-    python detetar_anomalias.py --sem-predicao        # não gera previsão
-    python detetar_anomalias.py --sem-validacao       # não valida previsões
-
-INTEGRAÇÃO (Windows Task Scheduler, ex. 15h05):
-    Programa:    python.exe
-    Argumentos:  C:\\...\\detetar_anomalias.py --modo baze --plots
-    Trigger:     Diariamente, 15:05
-
-EXIT CODES:
-    0   sem alertas (ou só alertas de baixa confiança com --so-alta-confianca)
-    1   alertas de alta confiança detetados
-    2   erro de configuração
-    3   sem dados para o dia pedido
-═══════════════════════════════════════════════════════════════════════════
+Responde a três perguntas, por esta ordem:
+  1. RETROSPETIVA  — "Como foi ontem?"  (deteta desvios via z-score)
+  2. PREDIÇÃO     — "O que esperar amanhã?"  (média histórica + ±1σ/±2σ)
+  3. VALIDAÇÃO    — "Quão boas foram as previsões anteriores?"  (MAE/RMSE/cobertura)
 """
 
 from __future__ import annotations
@@ -81,59 +25,40 @@ import holidays
 import numpy as np
 import pandas as pd
 
-# Permite importar módulos internos de src/
 SRC_DIR = Path(__file__).resolve().parents[1]
 if str(SRC_DIR) not in sys.path:
     sys.path.append(str(SRC_DIR))
 
 from config.paths import (
-    RESULTS_DIR,
-    CLUSTERING_DIR,
-    REALTIME_DIR,
-    ALERTS_DIR,
-    PLOTS_DIR,
-    LOGS_DIR,
-    PREDICTIONS_DIR,
-    ANALYSIS_DIR,
-    CLUSTERS_PATH,
-    ZIP_FALLBACK_PATH,
+    RESULTS_DIR, CLUSTERING_DIR, REALTIME_DIR, ALERTS_DIR, PLOTS_DIR,
+    LOGS_DIR, PREDICTIONS_DIR, ANALYSIS_DIR, CLUSTERS_PATH, ZIP_FALLBACK_PATH,
 )
-
 from data.baze_loader import carregar_ontem, CPES_CONFIG
 
 warnings.filterwarnings("ignore")
 
 
-# ── Parâmetros de deteção (idênticos ao notebook validado) ──────────────────
+# Parâmetros
 THRESHOLD_POR_TIPO = {
     "dia_util"  : 2.0,
     "fim_semana": 2.5,
     "feriado"   : 3.0,
 }
-MIN_HIST_IDEAL    = 10    # dias do MESMO tipo para confiança "alta"
-MIN_HIST_ABSOLUTO = 3     # abaixo disto (mesmo com fallback) descarta
-Z_CAP             = 10.0  # limite de |z| (evita números absurdos)
-STD_MIN_FRAC      = 0.10  # std mínimo = 10% do habitual
-STD_ABSOLUTO      = 0.3   # piso absoluto para evitar div/0
-BASELINE_WINDOW_DAYS = 60 # janela móvel: usar só os últimos N dias (sazonalidade)
+MIN_HIST_IDEAL       = 10    # dias do mesmo tipo para confiança "alta"
+MIN_HIST_ABSOLUTO    = 3     # mínimo absoluto para usar o CPE
+Z_CAP                = 10.0  # limite de |z|
+STD_MIN_FRAC         = 0.10  # std mínimo = 10% do habitual
+STD_ABSOLUTO         = 0.3   # piso absoluto para evitar div/0
+BASELINE_WINDOW_DAYS = 60    # janela móvel para captar sazonalidade
 
-# ── Cores ANSI (Windows 10+) ────────────────────────────────────────────────
+
 class Cor:
-    RESET     = "\033[0m"
-    NEGRITO   = "\033[1m"
-    DIM       = "\033[2m"
-    VERMELHO  = "\033[91m"
-    VERDE     = "\033[92m"
-    AMARELO   = "\033[93m"
-    AZUL      = "\033[94m"
-    CIANO     = "\033[96m"
-    ROXO      = "\033[95m"
-    CINZENTO  = "\033[90m"
+    RESET, NEGRITO, DIM = "\033[0m", "\033[1m", "\033[2m"
+    VERMELHO, VERDE, AMARELO = "\033[91m", "\033[92m", "\033[93m"
+    AZUL, CIANO, ROXO, CINZENTO = "\033[94m", "\033[96m", "\033[95m", "\033[90m"
 
 
-# ═════════════════════════════════════════════════════════════════════════
 # DATACLASSES
-# ═════════════════════════════════════════════════════════════════════════
 
 @dataclass
 class Parametros:
@@ -155,12 +80,12 @@ class ResultadoCPE:
     consumo_real:     float
     consumo_esperado: float
     std_esperado:     float
-    z_score:          float          # capado a ±Z_CAP
-    z_real:           float          # sem cap (informativo)
-    veredicto:        str            # 'normal' | 'desvio'
-    direcao:          str            # 'acima' | 'abaixo'
-    n_dias_tipo:      int            # dias do MESMO tipo (suporte do baseline)
-    confianca:        str            # 'alta' | 'baixa'
+    z_score:          float
+    z_real:           float
+    veredicto:        str
+    direcao:          str
+    n_dias_tipo:      int
+    confianca:        str
     fonte_baseline:   str
     threshold:        float
 
@@ -168,7 +93,7 @@ class ResultadoCPE:
 @dataclass
 class Previsao:
     cpe:            str
-    data:           date             # dia previsto (data_alvo + 1)
+    data:           date
     tipo_dia:       str
     previsao:       float
     std:            float
@@ -176,14 +101,12 @@ class Previsao:
     high_1sigma:    float
     low_2sigma:     float
     high_2sigma:    float
-    n_dias:         int              # dias usados no baseline
-    confianca:      str              # 'alta' | 'baixa'
+    n_dias:         int
+    confianca:      str
     fonte_baseline: str
 
 
-# ═════════════════════════════════════════════════════════════════════════
 # LOGGING
-# ═════════════════════════════════════════════════════════════════════════
 
 def configurar_logging(quiet: bool = False) -> logging.Logger:
     LOGS_DIR.mkdir(parents=True, exist_ok=True)
@@ -208,17 +131,11 @@ def configurar_logging(quiet: bool = False) -> logging.Logger:
     return logger
 
 
-# ═════════════════════════════════════════════════════════════════════════
 # CARREGAMENTO DE DADOS
-# ═════════════════════════════════════════════════════════════════════════
 
 def carregar_dados_baze(logger: logging.Logger) -> pd.DataFrame:
-    """Carrega dados via API BaZe (1 valor por CPE por dia)."""
-
     logger.info(f"{Cor.CIANO}→ A pedir dados ao BaZe "
                 f"({len(CPES_CONFIG)} CPEs)...{Cor.RESET}")
-    # usar_cache=True: o histórico do ano é reutilizado; só o dia novo é pedido.
-    # Permite re-correr o script sem voltar a descarregar tudo.
     df = carregar_ontem(CPES_CONFIG, usar_cache=True)
 
     if df.empty:
@@ -229,7 +146,6 @@ def carregar_dados_baze(logger: logging.Logger) -> pd.DataFrame:
 
 
 def carregar_dados_zip(logger: logging.Logger) -> pd.DataFrame:
-    """Fallback de desenvolvimento: ZIP histórico (15 min → diário)."""
     if not ZIP_FALLBACK_PATH.exists():
         logger.error(f"{Cor.VERMELHO}ZIP não encontrado: "
                      f"{ZIP_FALLBACK_PATH}{Cor.RESET}")
@@ -251,7 +167,6 @@ def carregar_dados_zip(logger: logging.Logger) -> pd.DataFrame:
 
 
 def carregar_dados(modo: str, logger: logging.Logger) -> pd.DataFrame:
-    """Carrega dados e normaliza colunas."""
     df = carregar_dados_baze(logger) if modo == "baze" \
          else carregar_dados_zip(logger)
 
@@ -262,12 +177,10 @@ def carregar_dados(modo: str, logger: logging.Logger) -> pd.DataFrame:
 
     df["tstamp"] = pd.to_datetime(df["tstamp"])
     df["data"]   = df["tstamp"].dt.date
-    df = df.sort_values(["CPE", "data"]).reset_index(drop=True)
-    return df
+    return df.sort_values(["CPE", "data"]).reset_index(drop=True)
 
 
 def carregar_clusters(logger: logging.Logger) -> dict:
-    """Carrega clusters (opcional, só para contexto). Devolve dict CPE→cluster."""
     if not CLUSTERS_PATH.exists():
         logger.info(f"  {Cor.AMARELO}Sem ficheiro de clusters — "
                     f"análise sem essa informação de contexto.{Cor.RESET}")
@@ -279,13 +192,9 @@ def carregar_clusters(logger: logging.Logger) -> dict:
     return clusters["cluster"].to_dict()
 
 
-# ═════════════════════════════════════════════════════════════════════════
 # CLASSIFICAÇÃO DE TIPO DE DIA
-# ═════════════════════════════════════════════════════════════════════════
 
 class ClassificadorDia:
-    """Classifica datas como dia útil, fim de semana ou feriado (PT)."""
-
     def __init__(self, anos):
         self.feriados = holidays.Portugal(years=anos)
 
@@ -300,9 +209,7 @@ class ClassificadorDia:
         return self.feriados.get(d)
 
 
-# ═════════════════════════════════════════════════════════════════════════
-# ANÁLISE — baseline POR CPE (idêntica à do notebook validado)
-# ═════════════════════════════════════════════════════════════════════════
+# ANÁLISE — baseline por CPE com janela móvel
 
 def analisar_cpe(
     cpe: str,
@@ -311,25 +218,14 @@ def analisar_cpe(
     df_cpe: pd.DataFrame,
     cluster_id: Optional[int],
 ) -> Optional[ResultadoCPE]:
-    """
-    Compara o consumo de 'data_alvo' com o histórico do PRÓPRIO CPE para
-    dias do mesmo tipo, com fallback inteligente e calibração robusta.
-
-    `df_cpe` já vem filtrado para este CPE e com a coluna 'tipo_dia'.
-    """
-    # Consumo de ontem
     consumo_ontem = df_cpe[df_cpe["data"] == data_alvo]["PotActiva"]
     if consumo_ontem.empty:
         return None
     consumo_real = float(consumo_ontem.iloc[0])
 
     threshold = THRESHOLD_POR_TIPO[tipo_dia]
-
-    # Janela móvel: só usa os últimos N dias para captar a sazonalidade atual
-    # (evita misturar inverno com verão no mesmo "habitual").
     janela_inicio = data_alvo - timedelta(days=BASELINE_WINDOW_DAYS)
 
-    # Histórico ideal: mesmo tipo de dia, na janela recente, excluindo o próprio dia
     df_hist_tipo = df_cpe[
         (df_cpe["data"] != data_alvo)
         & (df_cpe["tipo_dia"] == tipo_dia)
@@ -337,7 +233,6 @@ def analisar_cpe(
     ]
     n_dias_tipo = len(df_hist_tipo)
 
-    # Decidir baseline e confiança (baseada nos dias do MESMO tipo)
     if n_dias_tipo >= MIN_HIST_IDEAL:
         df_hist = df_hist_tipo
         confianca = "alta"
@@ -347,8 +242,7 @@ def analisar_cpe(
         confianca = "baixa"
         fonte_baseline = f"histórico {tipo_dia} (poucos dados)"
     else:
-        # Fallback: todo o histórico RECENTE do CPE (dentro da janela), mas
-        # confiança continua baixa, decidida por n_dias_tipo.
+        # Fallback: histórico recente do CPE (sem filtrar por tipo de dia)
         df_hist = df_cpe[
             (df_cpe["data"] != data_alvo)
             & (df_cpe["data"] >= janela_inicio)
@@ -362,8 +256,6 @@ def analisar_cpe(
     std   = float(df_hist["PotActiva"].std())
     if pd.isna(std):
         std = 0.0
-
-    # Std mínimo proporcional ao habitual (evita inflação em CPEs constantes)
     std = max(std, abs(media) * STD_MIN_FRAC, STD_ABSOLUTO)
 
     z        = (consumo_real - media) / std
@@ -380,16 +272,14 @@ def analisar_cpe(
         z_score=round(z_capped, 2),
         z_real=round(z, 2),
         veredicto=veredicto, direcao=direcao,
-        n_dias_tipo=n_dias_tipo,          # dias do MESMO tipo (não o fallback)
+        n_dias_tipo=n_dias_tipo,
         confianca=confianca,
         fonte_baseline=fonte_baseline,
         threshold=threshold,
     )
 
 
-# ═════════════════════════════════════════════════════════════════════════
-# PREDIÇÃO — mesma lógica de baseline, projetada para o dia seguinte
-# ═════════════════════════════════════════════════════════════════════════
+# PREDIÇÃO — projeção do baseline para o dia seguinte
 
 def prever_cpe(
     cpe: str,
@@ -397,22 +287,10 @@ def prever_cpe(
     tipo_dia: str,
     df_cpe: pd.DataFrame,
 ) -> Optional[Previsao]:
-    """
-    Prevê o consumo de 'data_prever' para o PRÓPRIO CPE, usando a média
-    histórica em dias do mesmo tipo (mesma escada de confiança da análise).
-
-    Devolve estimativa pontual + bandas ±1σ e ±2σ.
-
-    Nota: excluímos 'data_prever' do histórico caso já exista no dataset
-    (acontece em back-test com --data); na operação normal o dia ainda não
-    existe, por isso o resultado é idêntico ao do notebook validado.
-    `df_cpe` já vem filtrado para este CPE e com a coluna 'tipo_dia'.
-    """
     df_cpe = df_cpe[df_cpe["data"] != data_prever]
     if df_cpe.empty:
         return None
 
-    # Janela móvel (mesma lógica da análise): só usa os últimos N dias
     janela_inicio = data_prever - timedelta(days=BASELINE_WINDOW_DAYS)
     df_cpe = df_cpe[df_cpe["data"] >= janela_inicio]
     if df_cpe.empty:
@@ -456,9 +334,7 @@ def prever_cpe(
     )
 
 
-# ═════════════════════════════════════════════════════════════════════════
 # OUTPUT — RETROSPETIVA
-# ═════════════════════════════════════════════════════════════════════════
 
 def imprimir_cabecalho(
     params: Parametros, tipo_dia: str, nome_feriado: Optional[str],
@@ -556,8 +432,7 @@ def imprimir_alertas(
     if baixa and not so_alta_confianca:
         logger.info(f"{Cor.NEGRITO}{Cor.AMARELO}─── Desvios de BAIXA confiança "
                     f"({len(baixa)}) ──────────────{Cor.RESET}")
-        logger.info(f"  {Cor.DIM}(poucos dados históricos do mesmo tipo de dia "
-                    f"— verificar manualmente){Cor.RESET}")
+        logger.info(f"  {Cor.DIM}(poucos dados históricos — verificar manualmente){Cor.RESET}")
         logger.info("")
         for r in baixa:
             _imprimir_bloco_desvio(r, logger)
@@ -567,9 +442,7 @@ def imprimir_alertas(
         logger.info("")
 
 
-# ═════════════════════════════════════════════════════════════════════════
 # OUTPUT — PREDIÇÃO
-# ═════════════════════════════════════════════════════════════════════════
 
 def imprimir_resumo_predicao(
     previsoes: list[Previsao], data_prever: date, tipo_prever: str,
@@ -606,7 +479,6 @@ def imprimir_resumo_predicao(
 def exportar_previsoes(
     previsoes: list[Previsao], data_prever: date, logger: logging.Logger
 ) -> Optional[Path]:
-    """Grava previsao_YYYY-MM-DD.csv (mesma pasta/colunas que o notebook)."""
     if not previsoes:
         return None
 
@@ -634,18 +506,11 @@ def exportar_previsoes(
     return out
 
 
-# ═════════════════════════════════════════════════════════════════════════
-# VALIDAÇÃO — confronta previsões passadas com o consumo real já conhecido
-# ═════════════════════════════════════════════════════════════════════════
+# VALIDAÇÃO — confronta previsões passadas com o consumo real
 
 def validar_previsoes(
     df: pd.DataFrame, logger: logging.Logger
 ) -> Optional[pd.DataFrame]:
-    """
-    Para cada previsao_*.csv com consumo real já disponível, calcula
-    métricas de qualidade. Acumula tudo em analysis/qualidade_previsoes.csv.
-    Recalcula sempre do zero (idempotente) a partir dos ficheiros + dados atuais.
-    """
     largura = 70
     logger.info(f"{Cor.NEGRITO}{'═' * largura}{Cor.RESET}")
     logger.info(f"{Cor.NEGRITO}  VALIDAÇÃO — qualidade das previsões anteriores{Cor.RESET}")
@@ -673,7 +538,6 @@ def validar_previsoes(
 
         reais = df[df["data"] == data_prevista]
         if reais.empty:
-            # Previsão para um dia cujo real ainda não chegou — fica pendente
             n_pendentes += 1
             continue
 
@@ -729,7 +593,6 @@ def validar_previsoes(
     out = ANALYSIS_DIR / "qualidade_previsoes.csv"
     df_val.to_csv(out, index=False)
 
-    # Resumo: última validação + médias acumuladas
     ult = df_val.iloc[-1]
     logger.info(f"  {Cor.DIM}Dias validados:{Cor.RESET} {len(df_val)}"
                 + (f"   {Cor.DIM}pendentes:{Cor.RESET} {n_pendentes}"
@@ -751,14 +614,9 @@ def validar_previsoes(
     return df_val
 
 
-# ═════════════════════════════════════════════════════════════════════════
 # GRÁFICOS (opcionais)
-# ═════════════════════════════════════════════════════════════════════════
 
-def gerar_grafico_alerta(
-    r: ResultadoCPE, df_cpe: pd.DataFrame
-) -> Path:
-    """Série temporal do CPE com o dia analisado destacado."""
+def gerar_grafico_alerta(r: ResultadoCPE, df_cpe: pd.DataFrame) -> Path:
     import matplotlib.pyplot as plt
 
     df_cpe = df_cpe.sort_values("data")
@@ -812,9 +670,7 @@ def gerar_grafico_alerta(
     return out
 
 
-# ═════════════════════════════════════════════════════════════════════════
 # EXPORTAÇÃO — RETROSPETIVA
-# ═════════════════════════════════════════════════════════════════════════
 
 def exportar_resultados(
     resultados: list[ResultadoCPE], data_alvo: date, logger: logging.Logger
@@ -844,9 +700,7 @@ def exportar_resultados(
     return out
 
 
-# ═════════════════════════════════════════════════════════════════════════
 # MAIN
-# ═════════════════════════════════════════════════════════════════════════
 
 def parse_args() -> Parametros:
     p = argparse.ArgumentParser(
@@ -864,9 +718,9 @@ def parse_args() -> Parametros:
     p.add_argument("--so-alta-confianca", action="store_true",
                    help="Mostrar/contar apenas desvios de alta confiança")
     p.add_argument("--sem-predicao", action="store_true",
-                   help="Não gerar a previsão do dia seguinte (Parte 2)")
+                   help="Não gerar a previsão do dia seguinte")
     p.add_argument("--sem-validacao", action="store_true",
-                   help="Não validar previsões anteriores (Parte 3)")
+                   help="Não validar previsões anteriores")
 
     args = p.parse_args()
 
@@ -901,22 +755,18 @@ def main() -> int:
         os.system("")  # ativa cores ANSI no Windows 10+
 
     try:
-        # ── 1. Dados ────────────────────────────────────────────────────────
+        # 1. Dados
         df = carregar_dados(params.modo_dados, logger)
-        # Se o utilizador não passou --data, usar o último dia com dados
-        # (alinha com o notebook e evita "sem dados" quando o BaZe atrasa).
         if params.data_alvo is None:
             params.data_alvo = max(df["data"].unique())
-            # Back-test honesto: nunca usar dados posteriores ao dia analisado.
-            # Em produção isto é um no-op (os dados já só vão até ontem).
+            # Back-test honesto: nunca usar dados posteriores ao dia analisado
             df = df[df["data"] <= params.data_alvo]
 
-        # ── 2. Clusters (contexto opcional) ─────────────────────────────────
+        # 2. Clusters (contexto opcional)
         cluster_map = carregar_clusters(logger)
 
-        # ── 3. Tipo de dia ──────────────────────────────────────────────────
-        # Inclui o ano do dia a prever (data_alvo+1) para feriados de fim de ano
-        data_prever  = params.data_alvo + timedelta(days=1)
+        # 3. Tipo de dia
+        data_prever = params.data_alvo + timedelta(days=1)
         anos = sorted({d.year for d in df["data"].unique()}
                       | {params.data_alvo.year, data_prever.year})
         classificador = ClassificadorDia(anos)
@@ -934,10 +784,9 @@ def main() -> int:
                          f"{params.data_alvo}.{Cor.RESET}")
             return 3
 
-        # Pré-agrupar por CPE (evita filtrar o df inteiro N vezes — muito mais rápido)
         grupos = dict(tuple(df.groupby("CPE")))
 
-        # ── 4. PARTE 1 — Retrospetiva ───────────────────────────────────────
+        # 4. PARTE 1 — Retrospetiva
         logger.info(f"{Cor.CIANO}→ A analisar {len(cpes_com_dados)} "
                     f"CPEs (retrospetiva)...{Cor.RESET}")
 
@@ -976,7 +825,6 @@ def main() -> int:
             logger.info("")
 
         if params.gerar_plots and alertas:
-            # Se --so-alta-confianca, só gera gráficos dos de alta confiança
             alvo_plots = [r for r in alertas
                           if r.confianca == "alta" or not params.so_alta_confianca]
             if alvo_plots:
@@ -987,10 +835,10 @@ def main() -> int:
                 logger.info(f"  {len(alvo_plots)} gráficos em {PLOTS_DIR}")
                 logger.info("")
 
-        # ── 5. PARTE 2 — Predição do dia seguinte ───────────────────────────
+        # 5. PARTE 2 — Predição
         if not params.sem_predicao:
-            tipo_prever  = classificador(data_prever)
-            fer_prever   = classificador.nome_feriado(data_prever)
+            tipo_prever = classificador(data_prever)
+            fer_prever  = classificador.nome_feriado(data_prever)
             logger.info(f"{Cor.CIANO}→ A prever consumo de {data_prever} "
                         f"para {len(grupos)} CPEs...{Cor.RESET}")
 
@@ -1004,13 +852,10 @@ def main() -> int:
                                      fer_prever, logger)
             exportar_previsoes(previsoes, data_prever, logger)
 
-        # ── 6. PARTE 3 — Validação de previsões passadas ────────────────────
+        # 6. PARTE 3 — Validação
         if not params.sem_validacao:
             validar_previsoes(df, logger)
 
-        # ── Exit code ───────────────────────────────────────────────────────
-        # 1 se houver desvios de alta confiança; com --so-alta-confianca,
-        # ignora os de baixa confiança para efeitos de exit code.
         if n_desvio_alta > 0:
             return 1
         if n_desvio_baixa > 0 and not params.so_alta_confianca:

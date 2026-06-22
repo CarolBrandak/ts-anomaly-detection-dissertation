@@ -10,7 +10,7 @@ from config.paths import BAZE_CACHE_DIR
  
 CPES_CONFIG = [
  
-    # ── MT (13 CPEs) ────────────────────────────────────────────────────────
+    # MT (13 CPEs)
     {"cpe": "PT0002000068855003AK",  "cate": "MT"},
     {"cpe": "PT0002000073573036KH",  "cate": "MT"},
     {"cpe": "PT0002000068856826ZG",  "cate": "MT"},
@@ -25,7 +25,7 @@ CPES_CONFIG = [
     {"cpe": "PT0002000116530964LH",  "cate": "MT"},
     {"cpe": "PT0002000125701614SQ",  "cate": "MT"},
 
-    # ── BTE (56 CPEs) ───────────────────────────────────────────────────────
+    # BTE (56 CPEs)
     {"cpe": "PT0002000033074862LZ",  "cate": "BTE"},
     {"cpe": "PT0002000068856655YV",  "cate": "BTE"},
     {"cpe": "PT0002000068856267NC",  "cate": "BTE"},
@@ -83,7 +83,7 @@ CPES_CONFIG = [
     {"cpe": "PT0002000203886452WB",  "cate": "BTE"},
     {"cpe": "PT0002000082549706RH",  "cate": "BTE"},
  
-    # ── IP (207 CPEs) ───────────────────────────────────────────────────────
+    # IP (207 CPEs)
     {"cpe": "PT0002000032934812WB",  "cate": "IP"},
     {"cpe": "PT0002000032934971DD",  "cate": "IP"},
     {"cpe": "PT0002000032934982DC",  "cate": "IP"},
@@ -372,7 +372,7 @@ def _parse_resposta(raw, cpe):
         n = min(len(datas), len(consumo))
         rows = []
         for i in range(n):
-            d = str(datas[i])   # "20260201"
+            d = str(datas[i])
             v = consumo[i]
             if v is None:
                 continue
