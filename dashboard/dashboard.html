@@ -169,25 +169,6 @@
   .barrow .vl{font-family:var(--font-mono);font-size:13px;font-weight:600;
     text-align:right;color:var(--pred)}
 
-  /* ── Validation table ─────────────────────────────────── */
-  .tablewrap{overflow-x:auto;border-radius:12px;border:1px solid var(--line)}
-  table{width:100%;border-collapse:collapse;font-size:13.5px}
-  thead th{background:var(--panel);text-align:right;padding:11px 14px;font-weight:600;
-    color:var(--ink-2);font-size:11.5px;text-transform:uppercase;letter-spacing:.05em;
-    border-bottom:1px solid var(--line);white-space:nowrap;position:sticky;top:0}
-  thead th:first-child{text-align:left}
-  tbody td{padding:10px 14px;text-align:right;font-family:var(--font-mono);
-    border-bottom:1px solid var(--line);color:var(--ink)}
-  tbody td:first-child{text-align:left;font-weight:600}
-  tbody tr:last-child td{border-bottom:none}
-  tbody tr:hover{background:var(--accent-soft)}
-  tr.partial{background:#FFFBF5}
-  tr.partial:hover{background:var(--accent-soft)}
-  .badge-partial{font-family:var(--font-body);font-size:10.5px;font-weight:600;
-    color:var(--accent);background:var(--accent-soft);padding:2px 7px;border-radius:5px;
-    margin-left:7px}
-  .good{color:var(--normal)} .warn{color:var(--accent)}
-
   /* ── Empty / loading ──────────────────────────────────── */
   .empty{text-align:center;padding:44px 24px;color:var(--ink-3)}
   .empty h4{font-family:var(--font-display);font-size:18px;color:var(--ink-2);
@@ -306,39 +287,6 @@
         <span class="hint" id="predTableHint">os CPEs que reportaram ontem · clica nos títulos para ordenar</span>
       </div>
       <div class="panel-body" id="allPredWrap"><div class="spinner"></div></div>
-    </div>
-  </section>
-
-  <!-- ══ SECÇÃO 3 — QUALIDADE ══ -->
-  <section id="qualidade">
-    <div class="sec-head">
-      <span class="sec-kicker">Validação</span>
-      <h2>Quão boas têm sido as previsões</h2>
-    </div>
-    <p class="sec-sub" id="qualSub">A carregar o histórico de qualidade…</p>
-
-    <div class="panel">
-      <div class="panel-head">
-        <h3>Erro das previsões ao longo do tempo</h3>
-        <span class="hint">quanto menor, melhor (em kWh)</span>
-      </div>
-      <div class="panel-body" id="errChartWrap"><div class="spinner"></div></div>
-    </div>
-
-    <div class="panel">
-      <div class="panel-head">
-        <h3>Cobertura dos intervalos</h3>
-        <span class="hint">% de CPEs que caíram dentro do previsto · idealmente perto das linhas tracejadas</span>
-      </div>
-      <div class="panel-body" id="covChartWrap"><div class="spinner"></div></div>
-    </div>
-
-    <div class="panel">
-      <div class="panel-head">
-        <h3>Detalhe por dia</h3>
-        <span class="hint" id="qualTableHint"></span>
-      </div>
-      <div class="panel-body" id="qualTableWrap"><div class="spinner"></div></div>
     </div>
   </section>
 
