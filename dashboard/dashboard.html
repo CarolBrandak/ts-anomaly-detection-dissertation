@@ -73,6 +73,13 @@
   .btn:hover{border-color:var(--accent);color:var(--accent);transform:translateY(-1px);
     box-shadow:var(--shadow)}
   .btn svg{width:14px;height:14px}
+  .date-picker{display:flex;align-items:center;gap:8px;font-size:12.5px;
+    font-weight:600;color:var(--ink-3);text-transform:uppercase;letter-spacing:.06em}
+  .date-picker input{font-family:var(--font-mono);font-size:12.5px;font-weight:500;
+    color:var(--ink);background:var(--paper-2);border:1px solid var(--line-2);
+    border-radius:9px;padding:8px 10px;outline:none}
+  .date-picker input:focus{border-color:var(--accent);
+    box-shadow:0 0 0 3px var(--accent-soft)}
 
   /* ── Sections ─────────────────────────────────────────── */
   section{padding:46px 0;border-bottom:1px solid var(--line);
@@ -215,6 +222,10 @@
       </div>
     </div>
     <div class="status-strip">
+      <label class="date-picker">
+        <span>Dia</span>
+        <input type="date" id="dayPicker" aria-label="Escolher dia a visualizar">
+      </label>
       <div class="live"><span class="dot" id="liveDot"></span><span id="clock">—</span></div>
       <button class="btn" id="refresh">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
@@ -304,7 +315,6 @@
         <h5>Origem dos dados</h5>
         <p id="srcAnalise">Retrospetiva: <code>—</code></p>
         <p id="srcPrev">Predição: <code>—</code></p>
-        <p id="srcQual">Validação: <code>—</code></p>
       </div>
     </div>
   </footer>
@@ -362,17 +372,17 @@ function splitLine(line){
 }
 
 /* Procura o ficheiro mais recente recuando dia a dia */
-async function fetchLatestByDate(template, startDate, daysBack){
-  for(let i=0;i<=daysBack;i++){
-    const ds = fmtDate(addDays(startDate,-i));
-    const url = template.replace("{d}", ds);
-    try{
-      const r = await fetch(url, {cache:"no-store"});
-      if(r.ok){ return {date:ds, url, text:await r.text()}; }
-    }catch(e){/* continua */}
-  }
+async function fetchByDate(template, dateStr){
+  const url = template.replace("{d}", dateStr);
+  try{
+    const r = await fetch(url, {cache:"no-store"});
+    if(r.ok){
+      return {date:dateStr, url, text:await r.text()};
+    }
+  }catch(e){}
   return null;
 }
+
 async function fetchFixed(url){
   try{
     const r = await fetch(url,{cache:"no-store"});
@@ -772,40 +782,66 @@ function tickClock(){
   $("#clock").textContent = `${dd} ${fmtDate(now)} ${String(now.getHours()).padStart(2,"0")}:${String(now.getMinutes()).padStart(2,"0")}`;
 }
 
-async function loadAll(){
-  const today = new Date();
-  // Retrospetiva: do dia de hoje a recuar
-  const aRes = await fetchLatestByDate(PATHS.alerts, today, LOOKBACK);
-  renderOntem(aRes);
-  $("#srcAnalise").innerHTML = `Retrospetiva: <code>${aRes? aRes.url : "não encontrado"}</code>`;
+async function loadAll(dateStr){
+  const selectedDate = dateStr || $("#dayPicker").value || fmtDate(new Date());
 
-  // Conjunto de CPEs ativos = os que aparecem na análise de ontem
+  $("#dayPicker").value = selectedDate;
+
+  // Retrospetiva: carrega exatamente analise_YYYY-MM-DD.csv
+  const aRes = await fetchByDate(PATHS.alerts, selectedDate);
+  renderOntem(aRes);
+
+  $("#srcAnalise").innerHTML =
+    `Retrospetiva: <code>${aRes ? aRes.url : PATHS.alerts.replace("{d}", selectedDate) + " (não encontrado)"}</code>`;
+
+  // CPEs ativos = os que aparecem na análise desse dia
   let activeCpes = null;
   if(aRes){
-    try{ activeCpes = new Set(parseCSV(aRes.text).map(r=>r.CPE).filter(Boolean)); }catch(e){}
+    try{
+      activeCpes = new Set(parseCSV(aRes.text).map(r=>r.CPE).filter(Boolean));
+    }catch(e){}
   }
 
-  // Predição: o dia previsto é (último dia + 1) → começa em amanhã e recua
-  const pRes = await fetchLatestByDate(PATHS.predictions, addDays(today,1), LOOKBACK+1);
+  // Predição: carrega exatamente previsao_YYYY-MM-DD.csv
+  const pRes = await fetchByDate(PATHS.predictions, selectedDate);
   renderAmanha(pRes, activeCpes);
-  $("#srcPrev").innerHTML = `Predição: <code>${pRes? pRes.url : "não encontrado"}</code>`;
 
-  // Validação: ficheiro de nome fixo
-  const qRes = await fetchFixed(PATHS.quality);
-  renderQualidade(qRes);
-  $("#srcQual").innerHTML = `Validação: <code>${qRes? qRes.url : "não encontrado"}</code>`;
+  $("#srcPrev").innerHTML =
+    `Predição: <code>${pRes ? pRes.url : PATHS.predictions.replace("{d}", selectedDate) + " (não encontrado)"}</code>`;
+}
+
+
+function showLoading(){
+  document.querySelectorAll(".panel-body").forEach(p=>{
+    if(
+      p.querySelector(".empty") ||
+      p.querySelector(".alert") ||
+      p.querySelector("svg") ||
+      p.querySelector(".barrow") ||
+      p.querySelector("table") ||
+      p.querySelector(".allclear")
+    ){
+      p.innerHTML = '<div class="spinner"></div>';
+    }
+  });
 }
 
 $("#refresh").addEventListener("click", ()=>{
-  document.querySelectorAll(".panel-body").forEach(p=>{
-    if(p.querySelector(".empty")||p.querySelector(".alert")||p.querySelector("svg")||p.querySelector(".barrow")||p.querySelector("table")||p.querySelector(".allclear"))
-      p.innerHTML='<div class="spinner"></div>';
-  });
-  loadAll();
+  showLoading();
+  loadAll($("#dayPicker").value);
 });
 
-tickClock(); setInterval(tickClock, 30000);
-loadAll();
+$("#dayPicker").addEventListener("change", e=>{
+  showLoading();
+  loadAll(e.target.value);
+});
+
+tickClock();
+setInterval(tickClock, 30000);
+
+const initialDate = fmtDate(new Date());
+$("#dayPicker").value = initialDate;
+loadAll(initialDate);
 </script>
 </body>
 </html>
