@@ -165,6 +165,7 @@
   .alert.up .cpe{color:var(--high)} .alert.down .cpe{color:var(--low)}
   .chip{font-size:11px;font-weight:600;padding:2px 8px;border-radius:20px;
     background:var(--panel);color:var(--ink-3);text-transform:uppercase;letter-spacing:.04em}
+  .chip.repeat{background:#FFF7E6;color:#B45309;border:1px solid rgba(245,158,11,.28)}
   .alert .desc{font-size:14px;color:var(--ink-2);font-weight:500;margin-bottom:8px}
   .alert .nums{display:flex;gap:22px;flex-wrap:wrap;font-size:13px}
   .alert .nums div{display:flex;flex-direction:column}
@@ -302,7 +303,7 @@
   <!-- ══ SECÇÃO 2 — AMANHÃ ══ -->
   <section id="amanha">
     <div class="sec-head">
-      <span class="sec-kicker">Predição</span>
+      <span class="sec-kicker">Previsão</span>
       <h2>O que esperar a seguir</h2>
     </div>
     <p class="sec-sub" id="amanhaSub">A carregar a previsão…</p>
@@ -343,7 +344,7 @@
       <div>
         <h5>Origem dos dados</h5>
         <p id="srcAnalise">Retrospetiva: <code>—</code></p>
-        <p id="srcPrev">Predição: <code>—</code></p>
+        <p id="srcPrev">Previsão: <code>—</code></p>
       </div>
     </div>
   </footer>
@@ -360,6 +361,7 @@ const PATHS = {
   quality:     "../results/realtime/analysis/qualidade_previsoes.csv",
 };
 const CALENDAR_START_DATE = "2026-05-19";
+const REINCIDENCIA_DIAS = 6; // dias anteriores a verificar para reincidência
 
 /* ════════ Utilitários ════════ */
 const $ = s => document.querySelector(s);
@@ -416,6 +418,32 @@ async function fetchByDate(template, dateStr){
     }
   }catch(e){}
   return null;
+}
+
+async function fetchReincidencias(dateStr, diasBack=REINCIDENCIA_DIAS){
+  const hist = new Map();
+
+  for(let i=1; i<=diasBack; i++){
+    const ds = addDaysStr(dateStr, -i);
+    const res = await fetchByDate(PATHS.alerts, ds);
+
+    if(!res) continue;
+
+    try{
+      const rows = parseCSV(res.text);
+
+      rows.forEach(r=>{
+        if(r.veredicto === "desvio" && r.CPE){
+          const atual = hist.get(r.CPE) || {count:0, dates:[]};
+          atual.count += 1;
+          atual.dates.push(ds);
+          hist.set(r.CPE, atual);
+        }
+      });
+    }catch(e){}
+  }
+
+  return hist;
 }
 
 async function fileExists(template, dateStr){
@@ -627,7 +655,7 @@ function updateDayStatus(totalAlertas, alta, baixa){
   }
 }
 
-function renderOntem(res){
+function renderOntem(res, reincidencias = new Map()){
   if(!res){
     setDayStatus("nodata", "sem dados");
     $("#ontemSub").textContent = "Não foi encontrada nenhuma análise para este dia.";
@@ -681,12 +709,16 @@ function renderOntem(res){
     const pct = (r.real-r.hab)/Math.max(Math.abs(r.hab),0.001)*100;
     const cl = (r.cluster && r.cluster!=="" && r.cluster.toLowerCase()!=="nan") ? `Cluster ${r.cluster}` : "sem cluster";
     const lowc = r.confianca==="baixa" ? `<span class="chip" style="background:var(--accent-soft);color:var(--accent)">baixa confiança</span>` : "";
+    const rec = reincidencias.get(r.cpe);
+    const repeatChip = rec && rec.count > 0
+      ? `<span class="chip repeat" title="Também esteve em alerta em ${rec.dates.map(prettyDate).join(", ")}">${rec.count + 1}ª vez esta semana</span>`
+      : "";
     return `<div class="alert ${up?"up":"down"}">
       <div class="ico">${up?"🔴":"🔵"}</div>
       <div class="body">
         <div class="r1">
           <span class="cpe">${r.cpe}</span>
-          <span class="chip">${cl}</span>${lowc}
+          <span class="chip">${cl}</span>${lowc}${repeatChip}
         </div>
         <div class="desc">${up?"Consumiu <b>mais</b>":"Consumiu <b>menos</b>"} do que o habitual para este dia da semana.</div>
         <div class="nums">
@@ -911,7 +943,9 @@ async function loadAll(dateStr){
 
   // Retrospetiva: carrega exatamente analise_YYYY-MM-DD.csv
   const aRes = await fetchByDate(PATHS.alerts, selectedDate);
-  renderOntem(aRes);
+  const reincidencias = aRes ? await fetchReincidencias(selectedDate) : new Map();
+
+  renderOntem(aRes, reincidencias);
 
   $("#srcAnalise").innerHTML =
     `Retrospetiva: <code>${aRes ? aRes.url : PATHS.alerts.replace("{d}", selectedDate) + " (não encontrado)"}</code>`;
@@ -924,13 +958,13 @@ async function loadAll(dateStr){
     }catch(e){}
   }
 
-  // Predição: carrega exatamente previsao_YYYY-MM-DD.csv
+  // Previsão: carrega exatamente previsao_YYYY-MM-DD.csv
   const predictionDate = addDaysStr(selectedDate, 1);
   const pRes = await fetchByDate(PATHS.predictions, predictionDate);
   renderAmanha(pRes, activeCpes);
 
   $("#srcPrev").innerHTML =
-    `Predição: <code>${pRes ? pRes.url : PATHS.predictions.replace("{d}", predictionDate) + " (não encontrado)"}</code>`;
+    `Previsão: <code>${pRes ? pRes.url : PATHS.predictions.replace("{d}", predictionDate) + " (não encontrado)"}</code>`;
 }
 
 
