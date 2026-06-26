@@ -7,6 +7,9 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Hanken+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/pt.js"></script>
 <style>
   :root{
     /* paleta — mesmas famílias de cor do script/notebook, aprofundadas p/ contraste */
@@ -77,9 +80,17 @@
     font-weight:600;color:var(--ink-3);text-transform:uppercase;letter-spacing:.06em}
   .date-picker input{font-family:var(--font-mono);font-size:12.5px;font-weight:500;
     color:var(--ink);background:var(--paper-2);border:1px solid var(--line-2);
-    border-radius:9px;padding:8px 10px;outline:none}
+    border-radius:9px;padding:8px 10px;outline:none;width:130px}
   .date-picker input:focus{border-color:var(--accent);
     box-shadow:0 0 0 3px var(--accent-soft)}
+  .flatpickr-calendar{font-family:var(--font-body);border:1px solid var(--line-2);
+    box-shadow:var(--shadow-lift);border-radius:12px}
+  .flatpickr-day.flatpickr-disabled,.flatpickr-day.prevMonthDay.flatpickr-disabled,
+  .flatpickr-day.nextMonthDay.flatpickr-disabled{color:var(--ink-4)!important;
+    background:transparent!important;cursor:not-allowed!important}
+  .flatpickr-day.selected{background:var(--accent)!important;
+    border-color:var(--accent)!important;color:#fff!important}
+  .flatpickr-day.today{border-color:var(--accent)!important}
   .day-status{display:flex;align-items:center;gap:8px;font-family:var(--font-mono);
     font-size:12.5px;font-weight:700;border:1px solid var(--line-2);
     background:var(--paper-2);color:var(--ink-2);padding:8px 12px;border-radius:999px;
@@ -87,8 +98,8 @@
   .day-status .status-dot{width:9px;height:9px;border-radius:50%;background:var(--ink-4)}
   .day-status.ok{border-color:rgba(21,128,61,.28);background:var(--normal-soft);color:var(--normal)}
   .day-status.ok .status-dot{background:var(--normal)}
-  .day-status.warn{border-color:rgba(234,88,12,.32);background:var(--accent-soft);color:var(--accent)}
-  .day-status.warn .status-dot{background:var(--accent)}
+  .day-status.warn{border-color:rgba(245,158,11,.45);background:#FFF7E6;color:#B45309}
+  .day-status.warn .status-dot{background:#F59E0B}
   .day-status.danger{border-color:rgba(220,38,38,.28);background:var(--high-soft);color:var(--high)}
   .day-status.danger .status-dot{background:var(--high)}
   .day-status.nodata{border-color:var(--line-2);background:var(--panel);color:var(--ink-3)}
@@ -238,7 +249,7 @@
     <div class="status-strip">
       <label class="date-picker">
         <span>Dia</span>
-        <input type="date" id="dayPicker" aria-label="Escolher dia a visualizar">
+        <input type="text" id="dayPicker" aria-label="Escolher dia a visualizar" placeholder="Escolher dia">
       </label>
       <div class="day-status loading" id="dayStatus">
         <span class="status-dot"></span>
@@ -348,7 +359,7 @@ const PATHS = {
   predictions: "../results/realtime/predictions/previsao_{d}.csv",
   quality:     "../results/realtime/analysis/qualidade_previsoes.csv",
 };
-const LOOKBACK = 21; // dias a recuar à procura do ficheiro mais recente
+const CALENDAR_START_DATE = "2026-05-19";
 
 /* ════════ Utilitários ════════ */
 const $ = s => document.querySelector(s);
@@ -405,6 +416,71 @@ async function fetchByDate(template, dateStr){
     }
   }catch(e){}
   return null;
+}
+
+async function fileExists(template, dateStr){
+  const url = template.replace("{d}", dateStr);
+  try{
+    const r = await fetch(url, {cache:"no-store"});
+    return r.ok;
+  }catch(e){
+    return false;
+  }
+}
+
+let CALENDAR = null;
+
+async function buildDayCalendar(){
+  setDayStatus("loading", "A carregar…");
+
+  const picker = $("#dayPicker");
+  const today = new Date();
+  const availableDates = [];
+
+  const start = new Date(CALENDAR_START_DATE);
+  const end = new Date(today);
+
+  for(let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)){
+    const ds = fmtDate(d);
+    const hasAnalysis = await fileExists(PATHS.alerts, ds);
+
+    if(hasAnalysis){
+      availableDates.push(ds);
+    }
+  }
+
+  if(CALENDAR){
+    CALENDAR.destroy();
+  }
+
+  if(!availableDates.length){
+    picker.value = "";
+    picker.disabled = true;
+    setDayStatus("nodata", "sem dados");
+    renderOntem(null);
+    renderAmanha(null, null);
+    return;
+  }
+
+  CALENDAR = flatpickr(picker, {
+    locale: flatpickr.l10ns.pt,
+    dateFormat: "Y-m-d",
+    altInput: true,
+    altFormat: "d/m/Y",
+    defaultDate: availableDates[availableDates.length - 1],
+    minDate: CALENDAR_START_DATE,
+    maxDate: fmtDate(today),
+    enable: availableDates,
+    allowInput: false,
+    disableMobile: true,
+    onChange: function(selectedDates, dateStr){
+      if(!dateStr) return;
+      showLoading();
+      loadAll(dateStr);
+    }
+  });
+
+  loadAll(availableDates[availableDates.length - 1]);
 }
 
 async function fetchFixed(url){
@@ -880,17 +956,10 @@ $("#refresh").addEventListener("click", ()=>{
   loadAll($("#dayPicker").value);
 });
 
-$("#dayPicker").addEventListener("change", e=>{
-  showLoading();
-  loadAll(e.target.value);
-});
-
 tickClock();
 setInterval(tickClock, 30000);
 
-const initialDate = fmtDate(new Date());
-$("#dayPicker").value = initialDate;
-loadAll(initialDate);
+buildDayCalendar();
 </script>
 </body>
 </html>
