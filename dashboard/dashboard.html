@@ -166,6 +166,14 @@
   .chip{font-size:11px;font-weight:600;padding:2px 8px;border-radius:20px;
     background:var(--panel);color:var(--ink-3);text-transform:uppercase;letter-spacing:.04em}
   .chip.repeat{background:#FFF7E6;color:#B45309;border:1px solid rgba(245,158,11,.28)}
+  .spark-box{flex:0 0 160px;align-self:center;border-left:1px solid var(--line);
+    padding-left:14px;margin-left:4px}
+  .spark-title{font-size:10.5px;font-weight:700;color:var(--ink-4);
+    text-transform:uppercase;letter-spacing:.07em;margin-bottom:4px}
+  .sparkline{width:150px;height:52px;display:block}
+  .sparkline text{font-family:var(--font-mono);fill:var(--ink-4)}
+  .spark-grid{stroke:var(--line);stroke-width:1}
+  .spark-empty{font-size:12px;color:var(--ink-4);font-weight:600;padding:14px 0}
   .alert .desc{font-size:14px;color:var(--ink-2);font-weight:500;margin-bottom:8px}
   .alert .nums{display:flex;gap:22px;flex-wrap:wrap;font-size:13px}
   .alert .nums div{display:flex;flex-direction:column}
@@ -229,6 +237,9 @@
     .sec-head h2{font-size:24px}
     .barrow{grid-template-columns:110px 1fr 60px}
     footer .grid{grid-template-columns:1fr}
+    .alert{flex-wrap:wrap}
+    .spark-box{flex:1 1 100%;border-left:0;border-top:1px solid var(--line);
+      padding-left:0;padding-top:10px;margin-left:60px}
   }
   @media(max-width:480px){
     .stats{grid-template-columns:1fr 1fr}
@@ -272,7 +283,7 @@
   <section id="ontem">
     <div class="sec-head">
       <span class="sec-kicker">Retrospetiva</span>
-      <h2>Como foi ontem</h2>
+      <h2>Análise do dia</h2>
     </div>
     <p class="sec-sub" id="ontemSub">A carregar a análise do último dia disponível…</p>
 
@@ -304,7 +315,7 @@
   <section id="amanha">
     <div class="sec-head">
       <span class="sec-kicker">Previsão</span>
-      <h2>O que esperar a seguir</h2>
+      <h2>O que esperar do dia seguinte</h2>
     </div>
     <p class="sec-sub" id="amanhaSub">A carregar a previsão…</p>
 
@@ -362,6 +373,7 @@ const PATHS = {
 };
 const CALENDAR_START_DATE = "2026-05-19";
 const REINCIDENCIA_DIAS = 6; // dias anteriores a verificar para reincidência
+const SPARKLINE_DIAS = 6; // 6 dias anteriores + dia escolhido = 7 dias
 
 /* ════════ Utilitários ════════ */
 const $ = s => document.querySelector(s);
@@ -444,6 +456,98 @@ async function fetchReincidencias(dateStr, diasBack=REINCIDENCIA_DIAS){
   }
 
   return hist;
+}
+
+async function fetchSparklineHistory(dateStr, cpes, diasBack=SPARKLINE_DIAS){
+  const hist = new Map();
+
+  cpes.forEach(cpe=>{
+    hist.set(cpe, []);
+  });
+
+  for(let i=diasBack; i>=0; i--){
+    const ds = addDaysStr(dateStr, -i);
+    const res = await fetchByDate(PATHS.alerts, ds);
+
+    if(!res) continue;
+
+    try{
+      const rows = parseCSV(res.text);
+
+      rows.forEach(r=>{
+        if(cpes.has(r.CPE) && r.consumo_real !== ""){
+          const v = +r.consumo_real;
+
+          if(!isNaN(v)){
+            hist.get(r.CPE).push({
+              date: ds,
+              value: v,
+              offset: i
+            });
+          }
+        }
+      });
+    }catch(e){}
+  }
+
+  return hist;
+}
+
+function renderSparkline(points, up){
+  const vals = points
+    .filter(p=>p && !isNaN(p.value))
+    .sort((a,b)=>b.offset-a.offset);
+
+  if(!vals.length){
+    return `<div class="spark-empty">sem histórico</div>`;
+  }
+
+  const W = 150, H = 52, padX = 8, padY = 8;
+  const innerW = W - padX*2;
+  const innerH = H - padY*2 - 8;
+
+  let min = Math.min(...vals.map(p=>p.value));
+  let max = Math.max(...vals.map(p=>p.value));
+
+  if(min === max){
+    min -= 1;
+    max += 1;
+  }
+
+  const X = p => padX + ((SPARKLINE_DIAS - p.offset) / SPARKLINE_DIAS) * innerW;
+  const Y = p => padY + (1 - ((p.value - min) / (max - min))) * innerH;
+
+  const pts = vals.map(p=>[X(p), Y(p), p]);
+
+  const path = pts.length > 1
+    ? `M${pts.map(p=>`${p[0].toFixed(1)} ${p[1].toFixed(1)}`).join(" L")}`
+    : "";
+
+  const last = pts[pts.length - 1];
+  const color = up ? "var(--high)" : "var(--low)";
+
+  let s = `<svg class="sparkline" viewBox="0 0 ${W} ${H}" role="img">`;
+
+  s += `<line class="spark-grid" x1="${padX}" y1="${padY + innerH}" x2="${W - padX}" y2="${padY + innerH}"/>`;
+
+  if(path){
+    s += `<path d="${path}" fill="none" stroke="var(--ink-3)" stroke-width="2.2"
+          stroke-linecap="round" stroke-linejoin="round"/>`;
+  }
+
+  pts.forEach(([x,y,p],idx)=>{
+    const isLast = idx === pts.length - 1;
+    s += `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${isLast ? 3.6 : 2.6}"
+          fill="${isLast ? color : "var(--ink-4)"}">
+          <title>${prettyDate(p.date)} · ${nice(p.value)} kWh</title>
+        </circle>`;
+  });
+
+  s += `<text x="${padX}" y="${H-2}" font-size="9.5" text-anchor="start">${vals.length}/7 dias</text>`;
+  s += `<text x="${W-padX}" y="${H-2}" font-size="9.5" text-anchor="end">${nice(vals[vals.length-1].value,0)} kWh</text>`;
+  s += `</svg>`;
+
+  return s;
 }
 
 async function fileExists(template, dateStr){
@@ -648,14 +752,14 @@ function setDayStatus(mode, text){
 function updateDayStatus(totalAlertas, alta, baixa){
   if(totalAlertas === 0){
     setDayStatus("ok", "0 alertas");
-  }else if(totalAlertas <= 5){
+  }else if(totalAlertas <= 10){
     setDayStatus("warn", `${totalAlertas} alertas`);
   }else{
     setDayStatus("danger", `${totalAlertas} alertas`);
   }
 }
 
-function renderOntem(res, reincidencias = new Map()){
+function renderOntem(res, reincidencias = new Map(), sparkHistory = new Map()){
   if(!res){
     setDayStatus("nodata", "sem dados");
     $("#ontemSub").textContent = "Não foi encontrada nenhuma análise para este dia.";
@@ -709,10 +813,11 @@ function renderOntem(res, reincidencias = new Map()){
     const pct = (r.real-r.hab)/Math.max(Math.abs(r.hab),0.001)*100;
     const cl = (r.cluster && r.cluster!=="" && r.cluster.toLowerCase()!=="nan") ? `Cluster ${r.cluster}` : "sem cluster";
     const lowc = r.confianca==="baixa" ? `<span class="chip" style="background:var(--accent-soft);color:var(--accent)">baixa confiança</span>` : "";
-    const rec = reincidencias.get(r.cpe);
+        const rec = reincidencias.get(r.cpe);
     const repeatChip = rec && rec.count > 0
       ? `<span class="chip repeat" title="Também esteve em alerta em ${rec.dates.map(prettyDate).join(", ")}">${rec.count + 1}ª vez esta semana</span>`
       : "";
+    const spark = renderSparkline(sparkHistory.get(r.cpe) || [], up);
     return `<div class="alert ${up?"up":"down"}">
       <div class="ico">${up?"🔴":"🔵"}</div>
       <div class="body">
@@ -728,7 +833,12 @@ function renderOntem(res, reincidencias = new Map()){
           <div><span class="k">z-score</span><span class="v">${r.z>0?"+":""}${nice(r.z,2)}</span></div>
           <div><span class="k">Histórico</span><span class="v">${r.ndias} dias</span></div>
         </div>
-      </div></div>`;
+      </div>
+      <div class="spark-box">
+        <div class="spark-title">últimos 7 dias</div>
+        ${spark}
+      </div>
+    </div>`;
   }).join("");
 }
 
@@ -943,19 +1053,34 @@ async function loadAll(dateStr){
 
   // Retrospetiva: carrega exatamente analise_YYYY-MM-DD.csv
   const aRes = await fetchByDate(PATHS.alerts, selectedDate);
-  const reincidencias = aRes ? await fetchReincidencias(selectedDate) : new Map();
 
-  renderOntem(aRes, reincidencias);
+  let aRows = [];
+  let alertCpes = new Set();
+
+  if(aRes){
+    try{
+      aRows = parseCSV(aRes.text);
+      alertCpes = new Set(
+        aRows
+          .filter(r=>r.veredicto === "desvio")
+          .map(r=>r.CPE)
+          .filter(Boolean)
+      );
+    }catch(e){}
+  }
+
+  const reincidencias = aRes ? await fetchReincidencias(selectedDate) : new Map();
+  const sparkHistory = aRes ? await fetchSparklineHistory(selectedDate, alertCpes) : new Map();
+
+  renderOntem(aRes, reincidencias, sparkHistory);
 
   $("#srcAnalise").innerHTML =
     `Retrospetiva: <code>${aRes ? aRes.url : PATHS.alerts.replace("{d}", selectedDate) + " (não encontrado)"}</code>`;
 
   // CPEs ativos = os que aparecem na análise desse dia
   let activeCpes = null;
-  if(aRes){
-    try{
-      activeCpes = new Set(parseCSV(aRes.text).map(r=>r.CPE).filter(Boolean));
-    }catch(e){}
+  if(aRows.length){
+    activeCpes = new Set(aRows.map(r=>r.CPE).filter(Boolean));
   }
 
   // Previsão: carrega exatamente previsao_YYYY-MM-DD.csv
