@@ -1,0 +1,334 @@
+2026-06-26 09:49:17 [INFO] [96m→ A pedir dados ao BaZe (276 CPEs)...[0m
+2026-06-26 09:49:24 [INFO] 
+2026-06-26 09:49:24 [INFO] [1m══════════════════════════════════════════════════════════════════════[0m
+2026-06-26 09:49:24 [INFO] [1m  DETEÇÃO DE ANOMALIAS — 2026-06-21[0m
+2026-06-26 09:49:24 [INFO] [1m══════════════════════════════════════════════════════════════════════[0m
+2026-06-26 09:49:24 [INFO]   [2mTipo de dia:[0m  fim semana
+2026-06-26 09:49:24 [INFO]   [2mFonte:[0m        BAZE
+2026-06-26 09:49:24 [INFO]   [2mCPEs c/ dados:[0m 56
+2026-06-26 09:49:24 [INFO]   [2mThreshold:[0m    |z| > 2.5 [2m(adaptativo a este tipo de dia)[0m
+2026-06-26 09:49:24 [INFO] 
+2026-06-26 09:49:25 [INFO] [96m→ A analisar 56 CPEs (retrospetiva)...[0m
+2026-06-26 09:49:25 [INFO] [1m─── Resumo ─────────────────────────────────────[0m
+2026-06-26 09:49:25 [INFO]   [92m● Normal[0m                  49 [2m( 87.5%)[0m
+2026-06-26 09:49:25 [INFO]   [91m● Desvio (alta confiança)[0m    7 [2m( 12.5%)[0m
+2026-06-26 09:49:25 [INFO]   [93m● Desvio (baixa confiança)[0m   0 [2m(  0.0%)[0m
+2026-06-26 09:49:25 [INFO]   [2mTempo: 7.5s[0m
+2026-06-26 09:49:25 [INFO] 
+2026-06-26 09:49:25 [INFO] [1m─── Desvios de ALTA confiança (7) ───────────────────[0m
+2026-06-26 09:49:25 [INFO] 
+2026-06-26 09:49:25 [INFO]   🔴 [91m[1mPT0002000111572054VT[0m  [2m[sem cluster][0m
+2026-06-26 09:49:25 [INFO]      consumiu MAIS que o habitual
+2026-06-26 09:49:25 [INFO]      [2mReal:[0m 6.0 kWh   [2mHabitual:[0m 1.9 ± 0.4 kWh   [2mz:[0m +10.00⁺   [2mdesvio:[0m +223%   [2m(16 dias fim_semana)[0m
+2026-06-26 09:49:25 [INFO] 
+2026-06-26 09:49:25 [INFO]   🔴 [91m[1mPT0002000068859187RL[0m  [2m[Cluster 0][0m
+2026-06-26 09:49:25 [INFO]      consumiu MAIS que o habitual
+2026-06-26 09:49:25 [INFO]      [2mReal:[0m 7.0 kWh   [2mHabitual:[0m 2.8 ± 0.8 kWh   [2mz:[0m +5.28   [2mdesvio:[0m +152%   [2m(16 dias fim_semana)[0m
+2026-06-26 09:49:25 [INFO] 
+2026-06-26 09:49:25 [INFO]   🔴 [91m[1mPT0002000123648159KR[0m  [2m[Cluster 0][0m
+2026-06-26 09:49:25 [INFO]      consumiu MAIS que o habitual
+2026-06-26 09:49:25 [INFO]      [2mReal:[0m 2.0 kWh   [2mHabitual:[0m 0.8 ± 0.3 kWh   [2mz:[0m +4.11   [2mdesvio:[0m +160%   [2m(16 dias fim_semana)[0m
+2026-06-26 09:49:25 [INFO] 
+2026-06-26 09:49:25 [INFO]   🔴 [91m[1mPT0002000073231742VK[0m  [2m[Cluster 0][0m
+2026-06-26 09:49:25 [INFO]      consumiu MAIS que o habitual
+2026-06-26 09:49:25 [INFO]      [2mReal:[0m 4.0 kWh   [2mHabitual:[0m 3.0 ± 0.3 kWh   [2mz:[0m +3.40   [2mdesvio:[0m +34%   [2m(16 dias fim_semana)[0m
+2026-06-26 09:49:25 [INFO] 
+2026-06-26 09:49:25 [INFO]   🔴 [91m[1mPT0002000102936404ME[0m  [2m[Cluster 1][0m
+2026-06-26 09:49:25 [INFO]      consumiu MAIS que o habitual
+2026-06-26 09:49:25 [INFO]      [2mReal:[0m 7.0 kWh   [2mHabitual:[0m 4.6 ± 0.9 kWh   [2mz:[0m +2.71   [2mdesvio:[0m +51%   [2m(16 dias fim_semana)[0m
+2026-06-26 09:49:25 [INFO] 
+2026-06-26 09:49:25 [INFO]   🔴 [91m[1mPT0002000115673471CB[0m  [2m[Cluster 0][0m
+2026-06-26 09:49:25 [INFO]      consumiu MAIS que o habitual
+2026-06-26 09:49:25 [INFO]      [2mReal:[0m 4.0 kWh   [2mHabitual:[0m 3.2 ± 0.3 kWh   [2mz:[0m +2.68   [2mdesvio:[0m +27%   [2m(16 dias fim_semana)[0m
+2026-06-26 09:49:25 [INFO] 
+2026-06-26 09:49:25 [INFO]   🔵 [94m[1mPT0002000068859393XH[0m  [2m[Cluster 1][0m
+2026-06-26 09:49:25 [INFO]      consumiu MENOS que o habitual
+2026-06-26 09:49:25 [INFO]      [2mReal:[0m 9.0 kWh   [2mHabitual:[0m 21.8 ± 4.8 kWh   [2mz:[0m -2.65   [2mdesvio:[0m -59%   [2m(16 dias fim_semana)[0m
+2026-06-26 09:49:25 [INFO] 
+2026-06-26 09:49:25 [INFO]   [2mCSV:[0m C:\Users\anaca\OneDrive\Ambiente de Trabalho\Tese\ts-anomaly-detection-dissertation\results\realtime\alerts\analise_2026-06-21.csv
+2026-06-26 09:49:25 [INFO] 
+2026-06-26 09:49:25 [INFO] [96m→ A prever consumo de 2026-06-22 para 276 CPEs...[0m
+2026-06-26 09:49:26 [INFO] [1m══════════════════════════════════════════════════════════════════════[0m
+2026-06-26 09:49:26 [INFO] [1m  PREDIÇÃO — 2026-06-22 [0m[2m(dia util)[0m
+2026-06-26 09:49:26 [INFO] [1m══════════════════════════════════════════════════════════════════════[0m
+2026-06-26 09:49:26 [INFO]   [95m● CPEs previstos[0m         276 [2m(alta: 275, baixa: 1)[0m
+2026-06-26 09:49:26 [INFO]   [95m● Consumo total previsto[0m  1437.3 kWh [2m(±264.3)[0m
+2026-06-26 09:49:26 [INFO] 
+2026-06-26 09:49:26 [INFO]   [2mPrevisão guardada:[0m C:\Users\anaca\OneDrive\Ambiente de Trabalho\Tese\ts-anomaly-detection-dissertation\results\realtime\predictions\previsao_2026-06-22.csv
+2026-06-26 09:49:26 [INFO] 
+2026-06-26 09:49:26 [INFO] [1m══════════════════════════════════════════════════════════════════════[0m
+2026-06-26 09:49:26 [INFO] [1m  VALIDAÇÃO — qualidade das previsões anteriores[0m
+2026-06-26 09:49:26 [INFO] [1m══════════════════════════════════════════════════════════════════════[0m
+2026-06-26 09:49:26 [INFO]   [2mDias validados:[0m 15   [2mpendentes:[0m 1
+2026-06-26 09:49:26 [INFO]   [2mÚltimo (2026-06-21):[0m MAE 1.95 kWh   RMSE 3.44   em ±1σ 48% [2m(esperado ~68%)[0m   em ±2σ 77% [2m(esperado ~95%)[0m
+2026-06-26 09:49:26 [INFO]   [2mMédia acumulada:[0m MAE 0.89 kWh   RMSE 3.44   em ±1σ 83%   em ±2σ 97%
+2026-06-26 09:49:26 [INFO]   [2mCSV:[0m C:\Users\anaca\OneDrive\Ambiente de Trabalho\Tese\ts-anomaly-detection-dissertation\results\realtime\analysis\qualidade_previsoes.csv
+2026-06-26 09:49:26 [INFO] 
+2026-06-26 09:54:08 [INFO] [96m→ A pedir dados ao BaZe (276 CPEs)...[0m
+2026-06-26 09:54:17 [INFO] 
+2026-06-26 09:54:17 [INFO] [1m══════════════════════════════════════════════════════════════════════[0m
+2026-06-26 09:54:17 [INFO] [1m  DETEÇÃO DE ANOMALIAS — 2026-06-21[0m
+2026-06-26 09:54:17 [INFO] [1m══════════════════════════════════════════════════════════════════════[0m
+2026-06-26 09:54:17 [INFO]   [2mTipo de dia:[0m  fim semana
+2026-06-26 09:54:17 [INFO]   [2mFonte:[0m        BAZE
+2026-06-26 09:54:17 [INFO]   [2mCPEs c/ dados:[0m 56
+2026-06-26 09:54:17 [INFO]   [2mThreshold:[0m    |z| > 2.5 [2m(adaptativo a este tipo de dia)[0m
+2026-06-26 09:54:17 [INFO] 
+2026-06-26 09:54:17 [INFO] [96m→ A analisar 56 CPEs (retrospetiva)...[0m
+2026-06-26 09:54:17 [INFO] [1m─── Resumo ─────────────────────────────────────[0m
+2026-06-26 09:54:17 [INFO]   [92m● Normal[0m                  49 [2m( 87.5%)[0m
+2026-06-26 09:54:17 [INFO]   [91m● Desvio (alta confiança)[0m    7 [2m( 12.5%)[0m
+2026-06-26 09:54:17 [INFO]   [93m● Desvio (baixa confiança)[0m   0 [2m(  0.0%)[0m
+2026-06-26 09:54:17 [INFO]   [2mTempo: 8.8s[0m
+2026-06-26 09:54:17 [INFO] 
+2026-06-26 09:54:17 [INFO] [1m─── Desvios de ALTA confiança (7) ───────────────────[0m
+2026-06-26 09:54:17 [INFO] 
+2026-06-26 09:54:17 [INFO]   🔴 [91m[1mPT0002000111572054VT[0m  [2m[sem cluster][0m
+2026-06-26 09:54:17 [INFO]      consumiu MAIS que o habitual
+2026-06-26 09:54:17 [INFO]      [2mReal:[0m 6.0 kWh   [2mHabitual:[0m 1.9 ± 0.4 kWh   [2mz:[0m +10.00⁺   [2mdesvio:[0m +223%   [2m(16 dias fim_semana)[0m
+2026-06-26 09:54:17 [INFO] 
+2026-06-26 09:54:17 [INFO]   🔴 [91m[1mPT0002000068859187RL[0m  [2m[Cluster 0][0m
+2026-06-26 09:54:17 [INFO]      consumiu MAIS que o habitual
+2026-06-26 09:54:17 [INFO]      [2mReal:[0m 7.0 kWh   [2mHabitual:[0m 2.8 ± 0.8 kWh   [2mz:[0m +5.28   [2mdesvio:[0m +152%   [2m(16 dias fim_semana)[0m
+2026-06-26 09:54:17 [INFO] 
+2026-06-26 09:54:17 [INFO]   🔴 [91m[1mPT0002000123648159KR[0m  [2m[Cluster 0][0m
+2026-06-26 09:54:17 [INFO]      consumiu MAIS que o habitual
+2026-06-26 09:54:17 [INFO]      [2mReal:[0m 2.0 kWh   [2mHabitual:[0m 0.8 ± 0.3 kWh   [2mz:[0m +4.11   [2mdesvio:[0m +160%   [2m(16 dias fim_semana)[0m
+2026-06-26 09:54:17 [INFO] 
+2026-06-26 09:54:17 [INFO]   🔴 [91m[1mPT0002000073231742VK[0m  [2m[Cluster 0][0m
+2026-06-26 09:54:17 [INFO]      consumiu MAIS que o habitual
+2026-06-26 09:54:17 [INFO]      [2mReal:[0m 4.0 kWh   [2mHabitual:[0m 3.0 ± 0.3 kWh   [2mz:[0m +3.40   [2mdesvio:[0m +34%   [2m(16 dias fim_semana)[0m
+2026-06-26 09:54:17 [INFO] 
+2026-06-26 09:54:17 [INFO]   🔴 [91m[1mPT0002000102936404ME[0m  [2m[Cluster 1][0m
+2026-06-26 09:54:17 [INFO]      consumiu MAIS que o habitual
+2026-06-26 09:54:17 [INFO]      [2mReal:[0m 7.0 kWh   [2mHabitual:[0m 4.6 ± 0.9 kWh   [2mz:[0m +2.71   [2mdesvio:[0m +51%   [2m(16 dias fim_semana)[0m
+2026-06-26 09:54:17 [INFO] 
+2026-06-26 09:54:17 [INFO]   🔴 [91m[1mPT0002000115673471CB[0m  [2m[Cluster 0][0m
+2026-06-26 09:54:17 [INFO]      consumiu MAIS que o habitual
+2026-06-26 09:54:17 [INFO]      [2mReal:[0m 4.0 kWh   [2mHabitual:[0m 3.2 ± 0.3 kWh   [2mz:[0m +2.68   [2mdesvio:[0m +27%   [2m(16 dias fim_semana)[0m
+2026-06-26 09:54:17 [INFO] 
+2026-06-26 09:54:17 [INFO]   🔵 [94m[1mPT0002000068859393XH[0m  [2m[Cluster 1][0m
+2026-06-26 09:54:17 [INFO]      consumiu MENOS que o habitual
+2026-06-26 09:54:17 [INFO]      [2mReal:[0m 9.0 kWh   [2mHabitual:[0m 21.8 ± 4.8 kWh   [2mz:[0m -2.65   [2mdesvio:[0m -59%   [2m(16 dias fim_semana)[0m
+2026-06-26 09:54:17 [INFO] 
+2026-06-26 09:54:17 [INFO]   [2mCSV:[0m C:\Users\anaca\OneDrive\Ambiente de Trabalho\Tese\ts-anomaly-detection-dissertation\results\realtime\alerts\analise_2026-06-21.csv
+2026-06-26 09:54:17 [INFO] 
+2026-06-26 09:54:17 [INFO] [96m→ A prever consumo de 2026-06-22 para 276 CPEs...[0m
+2026-06-26 09:54:18 [INFO] [1m══════════════════════════════════════════════════════════════════════[0m
+2026-06-26 09:54:18 [INFO] [1m  PREDIÇÃO — 2026-06-22 [0m[2m(dia util)[0m
+2026-06-26 09:54:18 [INFO] [1m══════════════════════════════════════════════════════════════════════[0m
+2026-06-26 09:54:18 [INFO]   [95m● CPEs previstos[0m         276 [2m(alta: 275, baixa: 1)[0m
+2026-06-26 09:54:18 [INFO]   [95m● Consumo total previsto[0m  1437.3 kWh [2m(±264.3)[0m
+2026-06-26 09:54:18 [INFO] 
+2026-06-26 09:54:18 [INFO]   [2mPrevisão guardada:[0m C:\Users\anaca\OneDrive\Ambiente de Trabalho\Tese\ts-anomaly-detection-dissertation\results\realtime\predictions\previsao_2026-06-22.csv
+2026-06-26 09:54:18 [INFO] 
+2026-06-26 09:54:18 [INFO] [1m══════════════════════════════════════════════════════════════════════[0m
+2026-06-26 09:54:18 [INFO] [1m  VALIDAÇÃO — qualidade das previsões anteriores[0m
+2026-06-26 09:54:18 [INFO] [1m══════════════════════════════════════════════════════════════════════[0m
+2026-06-26 09:54:19 [INFO]   [2mDias validados:[0m 15   [2mpendentes:[0m 1
+2026-06-26 09:54:19 [INFO]   [2mÚltimo (2026-06-21):[0m MAE 1.95 kWh   RMSE 3.44   em ±1σ 48% [2m(esperado ~68%)[0m   em ±2σ 77% [2m(esperado ~95%)[0m
+2026-06-26 09:54:19 [INFO]   [2mMédia acumulada:[0m MAE 0.89 kWh   RMSE 3.44   em ±1σ 83%   em ±2σ 97%
+2026-06-26 09:54:19 [INFO]   [2mCSV:[0m C:\Users\anaca\OneDrive\Ambiente de Trabalho\Tese\ts-anomaly-detection-dissertation\results\realtime\analysis\qualidade_previsoes.csv
+2026-06-26 09:54:19 [INFO] 
+2026-06-26 09:56:35 [INFO] [96m→ A pedir dados ao BaZe (276 CPEs)...[0m
+2026-06-26 10:03:55 [INFO] 
+2026-06-26 10:03:55 [INFO] [1m══════════════════════════════════════════════════════════════════════[0m
+2026-06-26 10:03:55 [INFO] [1m  DETEÇÃO DE ANOMALIAS — 2026-06-25[0m
+2026-06-26 10:03:55 [INFO] [1m══════════════════════════════════════════════════════════════════════[0m
+2026-06-26 10:03:55 [INFO]   [2mTipo de dia:[0m  dia util
+2026-06-26 10:03:55 [INFO]   [2mFonte:[0m        BAZE
+2026-06-26 10:03:55 [INFO]   [2mCPEs c/ dados:[0m 69
+2026-06-26 10:03:55 [INFO]   [2mThreshold:[0m    |z| > 2.0 [2m(adaptativo a este tipo de dia)[0m
+2026-06-26 10:03:55 [INFO] 
+2026-06-26 10:03:55 [INFO] [96m→ A analisar 69 CPEs (retrospetiva)...[0m
+2026-06-26 10:03:55 [INFO] [1m─── Resumo ─────────────────────────────────────[0m
+2026-06-26 10:03:55 [INFO]   [92m● Normal[0m                  28 [2m( 40.6%)[0m
+2026-06-26 10:03:55 [INFO]   [91m● Desvio (alta confiança)[0m   41 [2m( 59.4%)[0m
+2026-06-26 10:03:55 [INFO]   [93m● Desvio (baixa confiança)[0m   0 [2m(  0.0%)[0m
+2026-06-26 10:03:55 [INFO]   [2mTempo: 440.7s[0m
+2026-06-26 10:03:55 [INFO] 
+2026-06-26 10:03:55 [INFO] [1m─── Desvios de ALTA confiança (41) ───────────────────[0m
+2026-06-26 10:03:55 [INFO] 
+2026-06-26 10:03:55 [INFO]   🔴 [91m[1mPT0002000073481266XH[0m  [2m[Cluster 0][0m
+2026-06-26 10:03:55 [INFO]      consumiu MAIS que o habitual
+2026-06-26 10:03:55 [INFO]      [2mReal:[0m 11.0 kWh   [2mHabitual:[0m 5.2 ± 0.9 kWh   [2mz:[0m +6.07   [2mdesvio:[0m +110%   [2m(40 dias dia_util)[0m
+2026-06-26 10:03:55 [INFO] 
+2026-06-26 10:03:55 [INFO]   🔵 [94m[1mPT0002000120237616VJ[0m  [2m[Cluster 0][0m
+2026-06-26 10:03:55 [INFO]      consumiu MENOS que o habitual
+2026-06-26 10:03:55 [INFO]      [2mReal:[0m 3.0 kWh   [2mHabitual:[0m 7.8 ± 0.9 kWh   [2mz:[0m -5.19   [2mdesvio:[0m -62%   [2m(40 dias dia_util)[0m
+2026-06-26 10:03:55 [INFO] 
+2026-06-26 10:03:55 [INFO]   🔵 [94m[1mPT0002000033074862LZ[0m  [2m[Cluster 0][0m
+2026-06-26 10:03:55 [INFO]      consumiu MENOS que o habitual
+2026-06-26 10:03:55 [INFO]      [2mReal:[0m 3.0 kWh   [2mHabitual:[0m 8.6 ± 1.1 kWh   [2mz:[0m -5.09   [2mdesvio:[0m -65%   [2m(40 dias dia_util)[0m
+2026-06-26 10:03:55 [INFO] 
+2026-06-26 10:03:55 [INFO]   🔵 [94m[1mPT0002000068859393XH[0m  [2m[Cluster 1][0m
+2026-06-26 10:03:55 [INFO]      consumiu MENOS que o habitual
+2026-06-26 10:03:55 [INFO]      [2mReal:[0m 8.0 kWh   [2mHabitual:[0m 25.7 ± 3.6 kWh   [2mz:[0m -4.89   [2mdesvio:[0m -69%   [2m(40 dias dia_util)[0m
+2026-06-26 10:03:55 [INFO] 
+2026-06-26 10:03:55 [INFO]   🔵 [94m[1mPT0002000115673471CB[0m  [2m[Cluster 0][0m
+2026-06-26 10:03:55 [INFO]      consumiu MENOS que o habitual
+2026-06-26 10:03:55 [INFO]      [2mReal:[0m 4.0 kWh   [2mHabitual:[0m 11.6 ± 1.6 kWh   [2mz:[0m -4.82   [2mdesvio:[0m -66%   [2m(40 dias dia_util)[0m
+2026-06-26 10:03:55 [INFO] 
+2026-06-26 10:03:55 [INFO]   🔵 [94m[1mPT0002000073231742VK[0m  [2m[Cluster 0][0m
+2026-06-26 10:03:55 [INFO]      consumiu MENOS que o habitual
+2026-06-26 10:03:55 [INFO]      [2mReal:[0m 3.0 kWh   [2mHabitual:[0m 5.7 ± 0.6 kWh   [2mz:[0m -4.74   [2mdesvio:[0m -47%   [2m(40 dias dia_util)[0m
+2026-06-26 10:03:55 [INFO] 
+2026-06-26 10:03:55 [INFO]   🔵 [94m[1mPT0002000068859187RL[0m  [2m[Cluster 0][0m
+2026-06-26 10:03:55 [INFO]      consumiu MENOS que o habitual
+2026-06-26 10:03:55 [INFO]      [2mReal:[0m 3.0 kWh   [2mHabitual:[0m 9.3 ± 1.4 kWh   [2mz:[0m -4.68   [2mdesvio:[0m -68%   [2m(40 dias dia_util)[0m
+2026-06-26 10:03:55 [INFO] 
+2026-06-26 10:03:55 [INFO]   🔵 [94m[1mPT0002000115700602GW[0m  [2m[Cluster 0][0m
+2026-06-26 10:03:55 [INFO]      consumiu MENOS que o habitual
+2026-06-26 10:03:55 [INFO]      [2mReal:[0m 3.0 kWh   [2mHabitual:[0m 9.6 ± 1.4 kWh   [2mz:[0m -4.58   [2mdesvio:[0m -69%   [2m(40 dias dia_util)[0m
+2026-06-26 10:03:55 [INFO] 
+2026-06-26 10:03:55 [INFO]   🔵 [94m[1mPT0002000107046231FW[0m  [2m[Cluster 0][0m
+2026-06-26 10:03:55 [INFO]      consumiu MENOS que o habitual
+2026-06-26 10:03:55 [INFO]      [2mReal:[0m 0.0 kWh   [2mHabitual:[0m 3.7 ± 0.8 kWh   [2mz:[0m -4.49   [2mdesvio:[0m -100%   [2m(40 dias dia_util)[0m
+2026-06-26 10:03:55 [INFO] 
+2026-06-26 10:03:55 [INFO]   🔵 [94m[1mPT0002000123648159KR[0m  [2m[Cluster 0][0m
+2026-06-26 10:03:55 [INFO]      consumiu MENOS que o habitual
+2026-06-26 10:03:55 [INFO]      [2mReal:[0m 1.0 kWh   [2mHabitual:[0m 4.5 ± 0.9 kWh   [2mz:[0m -3.98   [2mdesvio:[0m -78%   [2m(40 dias dia_util)[0m
+2026-06-26 10:03:55 [INFO] 
+2026-06-26 10:03:55 [INFO]   🔵 [94m[1mPT0002000078441876HB[0m  [2m[Cluster 0][0m
+2026-06-26 10:03:55 [INFO]      consumiu MENOS que o habitual
+2026-06-26 10:03:55 [INFO]      [2mReal:[0m 127.0 kWh   [2mHabitual:[0m 243.6 ± 29.6 kWh   [2mz:[0m -3.94   [2mdesvio:[0m -48%   [2m(40 dias dia_util)[0m
+2026-06-26 10:03:55 [INFO] 
+2026-06-26 10:03:55 [INFO]   🔵 [94m[1mPT0002000114613364CC[0m  [2m[sem cluster][0m
+2026-06-26 10:03:55 [INFO]      consumiu MENOS que o habitual
+2026-06-26 10:03:55 [INFO]      [2mReal:[0m 28.0 kWh   [2mHabitual:[0m 54.1 ± 6.7 kWh   [2mz:[0m -3.89   [2mdesvio:[0m -48%   [2m(40 dias dia_util)[0m
+2026-06-26 10:03:55 [INFO] 
+2026-06-26 10:03:55 [INFO]   🔵 [94m[1mPT0002000071896778MT[0m  [2m[Cluster 0][0m
+2026-06-26 10:03:55 [INFO]      consumiu MENOS que o habitual
+2026-06-26 10:03:55 [INFO]      [2mReal:[0m 1.0 kWh   [2mHabitual:[0m 5.1 ± 1.1 kWh   [2mz:[0m -3.87   [2mdesvio:[0m -81%   [2m(40 dias dia_util)[0m
+2026-06-26 10:03:55 [INFO] 
+2026-06-26 10:03:55 [INFO]   🔵 [94m[1mPT0002000116530964LH[0m  [2m[sem cluster][0m
+2026-06-26 10:03:55 [INFO]      consumiu MENOS que o habitual
+2026-06-26 10:03:55 [INFO]      [2mReal:[0m 19.0 kWh   [2mHabitual:[0m 47.4 ± 7.8 kWh   [2mz:[0m -3.63   [2mdesvio:[0m -60%   [2m(40 dias dia_util)[0m
+2026-06-26 10:03:55 [INFO] 
+2026-06-26 10:03:55 [INFO]   🔵 [94m[1mPT0002000068858674WN[0m  [2m[sem cluster][0m
+2026-06-26 10:03:55 [INFO]      consumiu MENOS que o habitual
+2026-06-26 10:03:55 [INFO]      [2mReal:[0m 0.0 kWh   [2mHabitual:[0m 11.7 ± 3.4 kWh   [2mz:[0m -3.46   [2mdesvio:[0m -100%   [2m(40 dias dia_util)[0m
+2026-06-26 10:03:55 [INFO] 
+2026-06-26 10:03:55 [INFO]   🔵 [94m[1mPT0002000101964938LF[0m  [2m[Cluster 0][0m
+2026-06-26 10:03:55 [INFO]      consumiu MENOS que o habitual
+2026-06-26 10:03:55 [INFO]      [2mReal:[0m 2.0 kWh   [2mHabitual:[0m 5.3 ± 1.0 kWh   [2mz:[0m -3.44   [2mdesvio:[0m -63%   [2m(40 dias dia_util)[0m
+2026-06-26 10:03:55 [INFO] 
+2026-06-26 10:03:55 [INFO]   🔵 [94m[1mPT0002000068859597LS[0m  [2m[Cluster 0][0m
+2026-06-26 10:03:55 [INFO]      consumiu MENOS que o habitual
+2026-06-26 10:03:55 [INFO]      [2mReal:[0m 8.0 kWh   [2mHabitual:[0m 26.0 ± 5.6 kWh   [2mz:[0m -3.20   [2mdesvio:[0m -69%   [2m(40 dias dia_util)[0m
+2026-06-26 10:03:55 [INFO] 
+2026-06-26 10:03:55 [INFO]   🔵 [94m[1mPT0002000201038711LS[0m  [2m[sem cluster][0m
+2026-06-26 10:03:55 [INFO]      consumiu MENOS que o habitual
+2026-06-26 10:03:55 [INFO]      [2mReal:[0m 0.0 kWh   [2mHabitual:[0m 6.0 ± 1.9 kWh   [2mz:[0m -3.15   [2mdesvio:[0m -100%   [2m(40 dias dia_util)[0m
+2026-06-26 10:03:55 [INFO] 
+2026-06-26 10:03:55 [INFO]   🔵 [94m[1mPT0002000068856267NC[0m  [2m[sem cluster][0m
+2026-06-26 10:03:55 [INFO]      consumiu MENOS que o habitual
+2026-06-26 10:03:55 [INFO]      [2mReal:[0m 7.0 kWh   [2mHabitual:[0m 16.0 ± 2.9 kWh   [2mz:[0m -3.12   [2mdesvio:[0m -56%   [2m(40 dias dia_util)[0m
+2026-06-26 10:03:55 [INFO] 
+2026-06-26 10:03:55 [INFO]   🔵 [94m[1mPT0002000075637532JB[0m  [2m[Cluster 0][0m
+2026-06-26 10:03:55 [INFO]      consumiu MENOS que o habitual
+2026-06-26 10:03:55 [INFO]      [2mReal:[0m 2.0 kWh   [2mHabitual:[0m 5.3 ± 1.1 kWh   [2mz:[0m -3.10   [2mdesvio:[0m -63%   [2m(40 dias dia_util)[0m
+2026-06-26 10:03:55 [INFO] 
+2026-06-26 10:03:55 [INFO]   🔵 [94m[1mPT0002000078207354XC[0m  [2m[Cluster 1][0m
+2026-06-26 10:03:55 [INFO]      consumiu MENOS que o habitual
+2026-06-26 10:03:55 [INFO]      [2mReal:[0m 1.0 kWh   [2mHabitual:[0m 3.8 ± 0.9 kWh   [2mz:[0m -3.10   [2mdesvio:[0m -74%   [2m(40 dias dia_util)[0m
+2026-06-26 10:03:55 [INFO] 
+2026-06-26 10:03:55 [INFO]   🔵 [94m[1mPT0002000110090564GD[0m  [2m[Cluster 1][0m
+2026-06-26 10:03:55 [INFO]      consumiu MENOS que o habitual
+2026-06-26 10:03:55 [INFO]      [2mReal:[0m 1.0 kWh   [2mHabitual:[0m 4.4 ± 1.1 kWh   [2mz:[0m -3.07   [2mdesvio:[0m -77%   [2m(40 dias dia_util)[0m
+2026-06-26 10:03:55 [INFO] 
+2026-06-26 10:03:55 [INFO]   🔵 [94m[1mPT0002000114685657JR[0m  [2m[Cluster 0][0m
+2026-06-26 10:03:55 [INFO]      consumiu MENOS que o habitual
+2026-06-26 10:03:55 [INFO]      [2mReal:[0m 43.0 kWh   [2mHabitual:[0m 62.1 ± 6.2 kWh   [2mz:[0m -3.07   [2mdesvio:[0m -31%   [2m(40 dias dia_util)[0m
+2026-06-26 10:03:55 [INFO] 
+2026-06-26 10:03:55 [INFO]   🔵 [94m[1mPT0002000078294957RQ[0m  [2m[Cluster 0][0m
+2026-06-26 10:03:55 [INFO]      consumiu MENOS que o habitual
+2026-06-26 10:03:55 [INFO]      [2mReal:[0m 3.0 kWh   [2mHabitual:[0m 5.9 ± 1.0 kWh   [2mz:[0m -3.01   [2mdesvio:[0m -49%   [2m(40 dias dia_util)[0m
+2026-06-26 10:03:55 [INFO] 
+2026-06-26 10:03:55 [INFO]   🔵 [94m[1mPT0002000068855003AK[0m  [2m[sem cluster][0m
+2026-06-26 10:03:55 [INFO]      consumiu MENOS que o habitual
+2026-06-26 10:03:55 [INFO]      [2mReal:[0m 2.0 kWh   [2mHabitual:[0m 6.9 ± 1.7 kWh   [2mz:[0m -2.98   [2mdesvio:[0m -71%   [2m(40 dias dia_util)[0m
+2026-06-26 10:03:55 [INFO] 
+2026-06-26 10:03:55 [INFO]   🔵 [94m[1mPT0002000115673389QK[0m  [2m[Cluster 0][0m
+2026-06-26 10:03:55 [INFO]      consumiu MENOS que o habitual
+2026-06-26 10:03:55 [INFO]      [2mReal:[0m 6.0 kWh   [2mHabitual:[0m 15.5 ± 3.2 kWh   [2mz:[0m -2.94   [2mdesvio:[0m -61%   [2m(40 dias dia_util)[0m
+2026-06-26 10:03:55 [INFO] 
+2026-06-26 10:03:55 [INFO]   🔵 [94m[1mPT0002000068858231YY[0m  [2m[sem cluster][0m
+2026-06-26 10:03:55 [INFO]      consumiu MENOS que o habitual
+2026-06-26 10:03:55 [INFO]      [2mReal:[0m 7.0 kWh   [2mHabitual:[0m 17.7 ± 3.7 kWh   [2mz:[0m -2.89   [2mdesvio:[0m -60%   [2m(40 dias dia_util)[0m
+2026-06-26 10:03:55 [INFO] 
+2026-06-26 10:03:55 [INFO]   🔵 [94m[1mPT0002000109837807PE[0m  [2m[Cluster 1][0m
+2026-06-26 10:03:55 [INFO]      consumiu MENOS que o habitual
+2026-06-26 10:03:55 [INFO]      [2mReal:[0m 1.0 kWh   [2mHabitual:[0m 5.5 ± 1.6 kWh   [2mz:[0m -2.87   [2mdesvio:[0m -82%   [2m(40 dias dia_util)[0m
+2026-06-26 10:03:55 [INFO] 
+2026-06-26 10:03:55 [INFO]   🔵 [94m[1mPT0002000115031201VQ[0m  [2m[Cluster 0][0m
+2026-06-26 10:03:55 [INFO]      consumiu MENOS que o habitual
+2026-06-26 10:03:55 [INFO]      [2mReal:[0m 2.0 kWh   [2mHabitual:[0m 6.0 ± 1.4 kWh   [2mz:[0m -2.87   [2mdesvio:[0m -66%   [2m(40 dias dia_util)[0m
+2026-06-26 10:03:55 [INFO] 
+2026-06-26 10:03:55 [INFO]   🔴 [91m[1mPT0002000111572054VT[0m  [2m[sem cluster][0m
+2026-06-26 10:03:55 [INFO]      consumiu MAIS que o habitual
+2026-06-26 10:03:55 [INFO]      [2mReal:[0m 6.0 kWh   [2mHabitual:[0m 3.0 ± 1.1 kWh   [2mz:[0m +2.83   [2mdesvio:[0m +101%   [2m(40 dias dia_util)[0m
+2026-06-26 10:03:55 [INFO] 
+2026-06-26 10:03:55 [INFO]   🔵 [94m[1mPT0002000068857897ZV[0m  [2m[Cluster 0][0m
+2026-06-26 10:03:55 [INFO]      consumiu MENOS que o habitual
+2026-06-26 10:03:55 [INFO]      [2mReal:[0m 6.0 kWh   [2mHabitual:[0m 13.7 ± 2.8 kWh   [2mz:[0m -2.75   [2mdesvio:[0m -56%   [2m(40 dias dia_util)[0m
+2026-06-26 10:03:55 [INFO] 
+2026-06-26 10:03:55 [INFO]   🔵 [94m[1mPT0002000068859382XF[0m  [2m[Cluster 0][0m
+2026-06-26 10:03:55 [INFO]      consumiu MENOS que o habitual
+2026-06-26 10:03:55 [INFO]      [2mReal:[0m 9.0 kWh   [2mHabitual:[0m 23.8 ± 5.4 kWh   [2mz:[0m -2.73   [2mdesvio:[0m -62%   [2m(40 dias dia_util)[0m
+2026-06-26 10:03:55 [INFO] 
+2026-06-26 10:03:55 [INFO]   🔵 [94m[1mPT0002000119303492KB[0m  [2m[Cluster 0][0m
+2026-06-26 10:03:55 [INFO]      consumiu MENOS que o habitual
+2026-06-26 10:03:55 [INFO]      [2mReal:[0m 2.0 kWh   [2mHabitual:[0m 6.4 ± 1.7 kWh   [2mz:[0m -2.68   [2mdesvio:[0m -69%   [2m(40 dias dia_util)[0m
+2026-06-26 10:03:55 [INFO] 
+2026-06-26 10:03:55 [INFO]   🔵 [94m[1mPT0002000077647404EM[0m  [2m[Cluster 1][0m
+2026-06-26 10:03:55 [INFO]      consumiu MENOS que o habitual
+2026-06-26 10:03:55 [INFO]      [2mReal:[0m 1.0 kWh   [2mHabitual:[0m 9.6 ± 3.3 kWh   [2mz:[0m -2.65   [2mdesvio:[0m -90%   [2m(40 dias dia_util)[0m
+2026-06-26 10:03:55 [INFO] 
+2026-06-26 10:03:55 [INFO]   🔵 [94m[1mPT0002000068856974CZ[0m  [2m[sem cluster][0m
+2026-06-26 10:03:55 [INFO]      consumiu MENOS que o habitual
+2026-06-26 10:03:55 [INFO]      [2mReal:[0m 3.0 kWh   [2mHabitual:[0m 5.4 ± 0.9 kWh   [2mz:[0m -2.63   [2mdesvio:[0m -44%   [2m(40 dias dia_util)[0m
+2026-06-26 10:03:55 [INFO] 
+2026-06-26 10:03:55 [INFO]   🔵 [94m[1mPT0002000077394934QY[0m  [2m[Cluster 0][0m
+2026-06-26 10:03:55 [INFO]      consumiu MENOS que o habitual
+2026-06-26 10:03:55 [INFO]      [2mReal:[0m 15.0 kWh   [2mHabitual:[0m 20.0 ± 2.0 kWh   [2mz:[0m -2.51   [2mdesvio:[0m -25%   [2m(40 dias dia_util)[0m
+2026-06-26 10:03:55 [INFO] 
+2026-06-26 10:03:55 [INFO]   🔵 [94m[1mPT0002000125701614SQ[0m  [2m[sem cluster][0m
+2026-06-26 10:03:55 [INFO]      consumiu MENOS que o habitual
+2026-06-26 10:03:55 [INFO]      [2mReal:[0m 4.0 kWh   [2mHabitual:[0m 11.3 ± 3.1 kWh   [2mz:[0m -2.38   [2mdesvio:[0m -65%   [2m(40 dias dia_util)[0m
+2026-06-26 10:03:55 [INFO] 
+2026-06-26 10:03:55 [INFO]   🔵 [94m[1mPT0002000125379984SH[0m  [2m[Cluster 1][0m
+2026-06-26 10:03:55 [INFO]      consumiu MENOS que o habitual
+2026-06-26 10:03:55 [INFO]      [2mReal:[0m 1.0 kWh   [2mHabitual:[0m 4.1 ± 1.3 kWh   [2mz:[0m -2.35   [2mdesvio:[0m -76%   [2m(40 dias dia_util)[0m
+2026-06-26 10:03:55 [INFO] 
+2026-06-26 10:03:55 [INFO]   🔵 [94m[1mPT0002000081344542CP[0m  [2m[Cluster 1][0m
+2026-06-26 10:03:55 [INFO]      consumiu MENOS que o habitual
+2026-06-26 10:03:55 [INFO]      [2mReal:[0m 0.0 kWh   [2mHabitual:[0m 3.0 ± 1.4 kWh   [2mz:[0m -2.13   [2mdesvio:[0m -100%   [2m(40 dias dia_util)[0m
+2026-06-26 10:03:55 [INFO] 
+2026-06-26 10:03:55 [INFO]   🔴 [91m[1mPT0002000082549706RH[0m  [2m[Cluster 0][0m
+2026-06-26 10:03:55 [INFO]      consumiu MAIS que o habitual
+2026-06-26 10:03:55 [INFO]      [2mReal:[0m 24.0 kWh   [2mHabitual:[0m 10.8 ± 6.3 kWh   [2mz:[0m +2.09   [2mdesvio:[0m +123%   [2m(40 dias dia_util)[0m
+2026-06-26 10:03:55 [INFO] 
+2026-06-26 10:03:55 [INFO]   🔵 [94m[1mPT0002000078233981HJ[0m  [2m[Cluster 1][0m
+2026-06-26 10:03:55 [INFO]      consumiu MENOS que o habitual
+2026-06-26 10:03:55 [INFO]      [2mReal:[0m 1.0 kWh   [2mHabitual:[0m 3.3 ± 1.1 kWh   [2mz:[0m -2.02   [2mdesvio:[0m -69%   [2m(40 dias dia_util)[0m
+2026-06-26 10:03:55 [INFO] 
+2026-06-26 10:03:55 [INFO]   [2mCSV:[0m C:\Users\anaca\OneDrive\Ambiente de Trabalho\Tese\ts-anomaly-detection-dissertation\results\realtime\alerts\analise_2026-06-25.csv
+2026-06-26 10:03:55 [INFO] 
+2026-06-26 10:03:55 [INFO] [96m→ A prever consumo de 2026-06-26 para 276 CPEs...[0m
+2026-06-26 10:03:56 [INFO] [1m══════════════════════════════════════════════════════════════════════[0m
+2026-06-26 10:03:56 [INFO] [1m  PREDIÇÃO — 2026-06-26 [0m[2m(dia util)[0m
+2026-06-26 10:03:56 [INFO] [1m══════════════════════════════════════════════════════════════════════[0m
+2026-06-26 10:03:56 [INFO]   [95m● CPEs previstos[0m         276 [2m(alta: 275, baixa: 1)[0m
+2026-06-26 10:03:56 [INFO]   [95m● Consumo total previsto[0m  1418.9 kWh [2m(±288.5)[0m
+2026-06-26 10:03:56 [INFO] 
+2026-06-26 10:03:56 [INFO]   [2mPrevisão guardada:[0m C:\Users\anaca\OneDrive\Ambiente de Trabalho\Tese\ts-anomaly-detection-dissertation\results\realtime\predictions\previsao_2026-06-26.csv
+2026-06-26 10:03:56 [INFO] 
+2026-06-26 10:03:56 [INFO] [1m══════════════════════════════════════════════════════════════════════[0m
+2026-06-26 10:03:56 [INFO] [1m  VALIDAÇÃO — qualidade das previsões anteriores[0m
+2026-06-26 10:03:56 [INFO] [1m══════════════════════════════════════════════════════════════════════[0m
+2026-06-26 10:03:56 [INFO]   [2mDias validados:[0m 16   [2mpendentes:[0m 1
+2026-06-26 10:03:56 [INFO]   [2mÚltimo (2026-06-22):[0m MAE 2.61 kWh   RMSE 4.11   em ±1σ 61% [2m(esperado ~68%)[0m   em ±2σ 93% [2m(esperado ~95%)[0m
+2026-06-26 10:03:56 [INFO]   [2mMédia acumulada:[0m MAE 1.00 kWh   RMSE 3.49   em ±1σ 81%   em ±2σ 96%
+2026-06-26 10:03:56 [INFO]   [2mCSV:[0m C:\Users\anaca\OneDrive\Ambiente de Trabalho\Tese\ts-anomaly-detection-dissertation\results\realtime\analysis\qualidade_previsoes.csv
+2026-06-26 10:03:56 [INFO] 

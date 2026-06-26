@@ -80,6 +80,20 @@
     border-radius:9px;padding:8px 10px;outline:none}
   .date-picker input:focus{border-color:var(--accent);
     box-shadow:0 0 0 3px var(--accent-soft)}
+  .day-status{display:flex;align-items:center;gap:8px;font-family:var(--font-mono);
+    font-size:12.5px;font-weight:700;border:1px solid var(--line-2);
+    background:var(--paper-2);color:var(--ink-2);padding:8px 12px;border-radius:999px;
+    box-shadow:var(--shadow)}
+  .day-status .status-dot{width:9px;height:9px;border-radius:50%;background:var(--ink-4)}
+  .day-status.ok{border-color:rgba(21,128,61,.28);background:var(--normal-soft);color:var(--normal)}
+  .day-status.ok .status-dot{background:var(--normal)}
+  .day-status.warn{border-color:rgba(234,88,12,.32);background:var(--accent-soft);color:var(--accent)}
+  .day-status.warn .status-dot{background:var(--accent)}
+  .day-status.danger{border-color:rgba(220,38,38,.28);background:var(--high-soft);color:var(--high)}
+  .day-status.danger .status-dot{background:var(--high)}
+  .day-status.nodata{border-color:var(--line-2);background:var(--panel);color:var(--ink-3)}
+  .day-status.nodata .status-dot{background:var(--ink-4)}
+  .day-status.loading .status-dot{background:var(--accent);animation:pulse 2.4s infinite}
 
   /* ── Sections ─────────────────────────────────────────── */
   section{padding:46px 0;border-bottom:1px solid var(--line);
@@ -226,6 +240,10 @@
         <span>Dia</span>
         <input type="date" id="dayPicker" aria-label="Escolher dia a visualizar">
       </label>
+      <div class="day-status loading" id="dayStatus">
+        <span class="status-dot"></span>
+        <span id="dayStatusText">A carregar…</span>
+      </div>
       <div class="live"><span class="dot" id="liveDot"></span><span id="clock">—</span></div>
       <button class="btn" id="refresh">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
@@ -348,6 +366,12 @@ function prettyDate(iso){
   const m=["jan","fev","mar","abr","mai","jun","jul","ago","set","out","nov","dez"];
   const p=iso.split("-"); if(p.length!==3) return iso;
   return `${parseInt(p[2],10)} ${m[parseInt(p[1],10)-1]}`;
+}
+function addDaysStr(dateStr, n){
+  const [y,m,d] = dateStr.split("-").map(Number);
+  const x = new Date(y, m-1, d);
+  x.setDate(x.getDate()+n);
+  return fmtDate(x);
 }
 
 /* CSV robusto (lida com campos entre aspas) */
@@ -508,9 +532,29 @@ function emptyCmd(title,sub,cmd){
 }
 
 /* ════════ Renderização das secções ════════ */
+
+function setDayStatus(mode, text){
+  const box = $("#dayStatus");
+  const label = $("#dayStatusText");
+  if(!box || !label) return;
+  box.className = `day-status ${mode}`;
+  label.textContent = text;
+}
+
+function updateDayStatus(totalAlertas, alta, baixa){
+  if(totalAlertas === 0){
+    setDayStatus("ok", "0 alertas");
+  }else if(totalAlertas <= 5){
+    setDayStatus("warn", `${totalAlertas} alertas`);
+  }else{
+    setDayStatus("danger", `${totalAlertas} alertas`);
+  }
+}
+
 function renderOntem(res){
   if(!res){
-    $("#ontemSub").textContent = "Não foi encontrada nenhuma análise recente.";
+    setDayStatus("nodata", "sem dados");
+    $("#ontemSub").textContent = "Não foi encontrada nenhuma análise para este dia.";
     $("#statCards").style.display="none";
     $("#stripWrap").innerHTML = emptyCmd(
       "Sem dados de retrospetiva",
@@ -530,6 +574,8 @@ function renderOntem(res){
   const alta = desvios.filter(r=>r.confianca==="alta");
   const baixa = desvios.filter(r=>r.confianca==="baixa");
   const normal = rows.length - desvios.length;
+
+  updateDayStatus(desvios.length, alta.length, baixa.length);
 
   $("#ontemSub").innerHTML =
     `Dia analisado: <b>${prettyDate(res.date)}</b> (${tipoLabel(rows[0]?.tipo)}). ` +
@@ -803,15 +849,18 @@ async function loadAll(dateStr){
   }
 
   // Predição: carrega exatamente previsao_YYYY-MM-DD.csv
-  const pRes = await fetchByDate(PATHS.predictions, selectedDate);
+  const predictionDate = addDaysStr(selectedDate, 1);
+  const pRes = await fetchByDate(PATHS.predictions, predictionDate);
   renderAmanha(pRes, activeCpes);
 
   $("#srcPrev").innerHTML =
-    `Predição: <code>${pRes ? pRes.url : PATHS.predictions.replace("{d}", selectedDate) + " (não encontrado)"}</code>`;
+    `Predição: <code>${pRes ? pRes.url : PATHS.predictions.replace("{d}", predictionDate) + " (não encontrado)"}</code>`;
 }
 
 
 function showLoading(){
+  setDayStatus("loading", "A carregar…");
+
   document.querySelectorAll(".panel-body").forEach(p=>{
     if(
       p.querySelector(".empty") ||
