@@ -1,0 +1,63 @@
+name: Recolha diária BaZe
+
+on:
+  workflow_dispatch:
+
+  schedule:
+    - cron: "10 15-17 * * *"
+      timezone: "Europe/Lisbon"
+
+permissions:
+  contents: write
+
+jobs:
+  recolher-baze:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    env:
+      PYTHONPATH: ${{ github.workspace }}/src
+
+    steps:
+      - name: Ir buscar o código
+        uses: actions/checkout@v6
+
+      - name: Instalar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Instalar dependências
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Apagar cache antiga do BaZe
+        run: |
+          mkdir -p results/baze_cache
+          rm -f results/baze_cache/*.json
+
+      - name: Recolher dados do BaZe
+        run: |
+          python src/realtime/detetar_anomalias.py --modo baze
+
+      - name: Guardar results como artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: results-baze-${{ github.run_number }}
+          path: |
+            results/
+            !results/baze_cache/**
+          retention-days: 30
+
+      - name: Guardar results no repositório
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git pull --rebase
+
+          git add -A results/
+
+          git diff --cached --quiet || git commit -m "Atualizar results BaZe"
+          git push
