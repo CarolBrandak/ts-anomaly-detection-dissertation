@@ -1,0 +1,19 @@
+name: Teste schedule
+
+on:
+  workflow_dispatch:
+
+  schedule:
+    - cron: "*/5 * * * *"
+      timezone: "Europe/Lisbon"
+
+jobs:
+  teste:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Confirmar execução automática
+        run: |
+          echo "Evento: ${{ github.event_name }}"
+          echo "Hora do runner:"
+          date
