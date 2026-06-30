@@ -4,11 +4,15 @@ on:
   workflow_dispatch:
 
   schedule:
-    - cron: "10 15-17 * * *"
-      timezone: "Europe/Lisbon"
+    - cron: "10 15-17 * * *" 
+      timezone: "Europe/Lisbon" 
 
 permissions:
   contents: write
+
+concurrency:
+  group: recolha-baze
+  cancel-in-progress: false
 
 jobs:
   recolher-baze:
@@ -55,9 +59,12 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-          git pull --rebase
-
           git add -A results/
 
-          git diff --cached --quiet || git commit -m "Atualizar results BaZe"
+          if git diff --cached --quiet; then
+            echo "Sem alterações em results/ para guardar."
+            exit 0
+          fi
+
+          git commit -m "Atualizar results BaZe"
           git push
