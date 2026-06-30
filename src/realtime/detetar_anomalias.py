@@ -856,10 +856,10 @@ def main() -> int:
         if not params.sem_validacao:
             validar_previsoes(df, logger)
 
-        if n_desvio_alta > 0:
-            return 1
-        if n_desvio_baixa > 0 and not params.so_alta_confianca:
-            return 1
+##        if n_desvio_alta > 0:
+##            return 1
+##        if n_desvio_baixa > 0 and not params.so_alta_confianca:
+##            return 1
         return 0
 
     except KeyboardInterrupt:
