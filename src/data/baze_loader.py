@@ -294,6 +294,10 @@ CPES_CONFIG = [
 ]
  
 BASE_URL = "http://baze2.cm-maia.pt/D4CMMaia/api/sumac.php"
+AG_15MIN = "15min"
+MAX_PONTOS_15MIN = 300
+PASSO_15MIN = pd.Timedelta(minutes=15)
+JANELA_MAX_15MIN = PASSO_15MIN * MAX_PONTOS_15MIN
  
 # Cache local para não pedir a mesma coisa duas vezes
 CACHE_DIR = BAZE_CACHE_DIR
@@ -301,16 +305,40 @@ CACHE_DIR.mkdir(parents=True, exist_ok=True)
  
  
 # FUNÇÕES
-def _cache_path(cpe, ano, cate):
-    return CACHE_DIR / f"{cpe}_{ano}_{cate}.json"
- 
- 
-def _fetch_cpe_ano(cpe, ano, cate, timeout=30, usar_cache=True):
+def _safe_cache_part(value):
+    if value is None:
+        return ""
+    return (
+        str(value)
+        .replace(":", "")
+        .replace("-", "")
+        .replace(" ", "T")
+        .replace("/", "")
+    )
+
+
+def _cache_path(cpe, ano, cate, ag=None, tstart=None, tend=None):
+    if ag is None and tstart is None and tend is None:
+        return CACHE_DIR / f"{cpe}_{ano}_{cate}.json"
+
+    partes = [cpe, ano, cate, ag or "diario"]
+    if tstart is not None:
+        partes.append(_safe_cache_part(tstart))
+    if tend is not None:
+        partes.append(_safe_cache_part(tend))
+    nome = "_".join(str(p) for p in partes if p != "")
+    return CACHE_DIR / f"{nome}.json"
+
+
+def _fetch_cpe_ano(
+    cpe, ano, cate, timeout=30, usar_cache=True,
+    ag=None, tstart=None, tend=None,
+):
     """
     Pede os dados de um CPE para um dado ano à API do BaZe.
     Devolve o JSON bruto ou None se falhar.
     """
-    cache = _cache_path(cpe, ano, cate)
+    cache = _cache_path(cpe, ano, cate, ag=ag, tstart=tstart, tend=tend)
  
     # Usar cache se existir (evita pedir os mesmos dados históricos repetidamente)
     if usar_cache and cache.exists():
@@ -318,6 +346,12 @@ def _fetch_cpe_ano(cpe, ano, cate, timeout=30, usar_cache=True):
             return json.load(f)
  
     params = {"cpe": cpe, "ano": ano, "cate": cate}
+    if ag is not None:
+        params["ag"] = ag
+    if tstart is not None:
+        params["tstart"] = tstart
+    if tend is not None:
+        params["tend"] = tend
     try:
         r = requests.get(BASE_URL, params=params, timeout=timeout)
         r.raise_for_status()
@@ -340,7 +374,30 @@ def _fetch_cpe_ano(cpe, ano, cate, timeout=30, usar_cache=True):
         return None
  
  
-def _parse_resposta(raw, cpe):
+def _parse_timestamp_baze(valor):
+    s = str(valor).strip()
+    digits = "".join(ch for ch in s if ch.isdigit())
+
+    for tamanho, formato in (
+        (14, "%Y%m%d%H%M%S"),
+        (12, "%Y%m%d%H%M"),
+        (8, "%Y%m%d"),
+    ):
+        if len(digits) >= tamanho:
+            return pd.to_datetime(digits[:tamanho], format=formato)
+
+    return pd.to_datetime(s)
+
+
+def _parse_consumo(valor):
+    if valor is None:
+        return None
+    if isinstance(valor, str):
+        valor = valor.replace(",", ".")
+    return float(valor)
+
+
+def _parse_resposta(raw, cpe, granularidade=None):
     """
     Converte o JSON do BaZe num DataFrame com colunas:
       tstamp, CPE, PotActiva
@@ -373,12 +430,14 @@ def _parse_resposta(raw, cpe):
         rows = []
         for i in range(n):
             d = str(datas[i])
-            v = consumo[i]
+            v = _parse_consumo(consumo[i])
             if v is None:
                 continue
             try:
-                ts = pd.Timestamp(f"{d[:4]}-{d[4:6]}-{d[6:8]}")
-                rows.append({"tstamp": ts, "CPE": cpe, "PotActiva": float(v)})
+                ts = _parse_timestamp_baze(d)
+                if granularidade == AG_15MIN:
+                    ts = ts - PASSO_15MIN
+                rows.append({"tstamp": ts, "CPE": cpe, "PotActiva": v})
             except Exception:
                 continue
  
@@ -390,7 +449,63 @@ def _parse_resposta(raw, cpe):
         return pd.DataFrame()
  
  
-def carregar_dados_baze(cpes_config, anos=None, usar_cache=True, pausa=0.5):
+def _formatar_ts_baze(ts):
+    return pd.Timestamp(ts).strftime("%Y%m%d%H%M%S")
+
+
+def _iter_janelas_15min(data_inicio, data_fim):
+    inicio = pd.Timestamp(data_inicio)
+    fim = pd.Timestamp(data_fim)
+    if fim <= inicio:
+        return
+
+    atual = inicio
+    while atual < fim:
+        prox = min(atual + JANELA_MAX_15MIN, fim)
+        # A API usa comparacoes estritas (hora > tstart e hora < tend).
+        yield atual - PASSO_15MIN, prox + PASSO_15MIN
+        atual = prox
+
+
+def _fetch_cpe_15min(cpe, cate, data_inicio=None, data_fim=None,
+                     timeout=30, usar_cache=True, pausa=0.5):
+    frames = []
+
+    if data_inicio is not None and data_fim is not None:
+        for inicio, fim in _iter_janelas_15min(data_inicio, data_fim):
+            ano = inicio.year
+            raw = _fetch_cpe_ano(
+                cpe, ano, cate, timeout=timeout, usar_cache=usar_cache,
+                ag=AG_15MIN,
+                tstart=_formatar_ts_baze(inicio),
+                tend=_formatar_ts_baze(fim),
+            )
+            df = _parse_resposta(raw, cpe, granularidade=AG_15MIN)
+            if len(df) > 0:
+                frames.append(df)
+            if not usar_cache:
+                time.sleep(pausa)
+
+    if frames:
+        return pd.concat(frames, ignore_index=True).drop_duplicates(
+            subset=["CPE", "tstamp"], keep="last"
+        )
+
+    # Fallback pratico: o endpoint tambem devolve os ultimos 300 pontos
+    # quando nao recebe tstart/tend. Isto mantem a recolha diaria a funcionar
+    # se a janela temporal falhar no servidor.
+    ano_atual = date.today().year
+    raw = _fetch_cpe_ano(
+        cpe, ano_atual, cate, timeout=timeout, usar_cache=usar_cache,
+        ag=AG_15MIN,
+    )
+    return _parse_resposta(raw, cpe, granularidade=AG_15MIN)
+
+
+def carregar_dados_baze(
+    cpes_config, anos=None, usar_cache=True, pausa=0.5,
+    granularidade=None, data_inicio=None, data_fim=None,
+):
     """
     Carrega os dados de todos os CPEs para os anos pedidos.
  
@@ -405,30 +520,57 @@ def carregar_dados_baze(cpes_config, anos=None, usar_cache=True, pausa=0.5):
     -------
     DataFrame com: tstamp, CPE, PotActiva, hora, data
     """
-    if anos is None:
+    if granularidade == AG_15MIN:
+        anos = [date.today().year] if anos is None else anos
+    elif anos is None:
         ano_atual = date.today().year
         anos = [ano_atual - 1, ano_atual]
  
     print(f"A carregar dados do BaZe...")
     print(f"  CPEs: {len(cpes_config)}")
     print(f"  Anos: {anos}")
+    print(f"  Granularidade: {granularidade or 'diaria'}")
+    if granularidade == AG_15MIN and data_inicio is not None and data_fim is not None:
+        print(f"  Janela: {data_inicio} -> {data_fim}")
     print(f"  Cache: {'ON' if usar_cache else 'OFF'} ({CACHE_DIR})")
     print()
  
     frames = []
-    total = len(cpes_config) * len(anos)
+    total = len(cpes_config) if granularidade == AG_15MIN else len(cpes_config) * len(anos)
     i = 0
  
     for cfg in cpes_config:
         cpe  = cfg["cpe"]
         cate = cfg["cate"]
+
+        if granularidade == AG_15MIN:
+            i += 1
+            print(f"  [{i:3d}/{total}] {cpe} / 15min... ", end="", flush=True)
+
+            df = _fetch_cpe_15min(
+                cpe, cate,
+                data_inicio=data_inicio,
+                data_fim=data_fim,
+                usar_cache=usar_cache,
+                pausa=pausa,
+            )
+
+            if len(df) > 0:
+                frames.append(df)
+                print(f"OK ({len(df)} registos)")
+            else:
+                print("sem dados")
+
+            if not usar_cache and data_inicio is None:
+                time.sleep(pausa)
+            continue
  
         for ano in anos:
             i += 1
             print(f"  [{i:3d}/{total}] {cpe} / {ano}... ", end="", flush=True)
  
             raw = _fetch_cpe_ano(cpe, ano, cate, usar_cache=usar_cache)
-            df  = _parse_resposta(raw, cpe)
+            df  = _parse_resposta(raw, cpe, granularidade=granularidade)
  
             if len(df) > 0:
                 frames.append(df)
@@ -452,19 +594,24 @@ def carregar_dados_baze(cpes_config, anos=None, usar_cache=True, pausa=0.5):
     print(f"\nDados carregados:")
     print(f"  Total registos: {len(df_final):,}")
     print(f"  CPEs únicos:    {df_final['CPE'].nunique()}")
-    print(f"  Período:        {df_final['data'].min()} → {df_final['data'].max()}")
+    print(f"  Periodo:        {df_final['data'].min()} -> {df_final['data'].max()}")
  
     return df_final
  
  
-def carregar_ontem(cpes_config, usar_cache=False):
+def carregar_ontem(cpes_config, usar_cache=False, granularidade=AG_15MIN):
     """
     Versão simplificada para uso diário (às 15h):
     carrega apenas os dados do ano atual (inclui ontem).
     Não usa cache por defeito — queremos dados frescos.
     """
     ano_atual = date.today().year
-    return carregar_dados_baze(cpes_config, anos=[ano_atual], usar_cache=usar_cache)
+    return carregar_dados_baze(
+        cpes_config,
+        anos=[ano_atual],
+        usar_cache=usar_cache,
+        granularidade=granularidade,
+    )
  
  
 def inspecionar_resposta_bruta(cpe, ano, cate):

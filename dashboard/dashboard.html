@@ -37,7 +37,23 @@
     background-size:26px 26px; background-attachment:fixed;
     -webkit-font-smoothing:antialiased;
   }
-  .wrap{max-width:1140px;margin:0 auto;padding:0 24px}
+  .layout{display:grid;grid-template-columns:190px minmax(0,1fr);gap:28px;
+    max-width:1380px;margin:0 auto;padding:0 24px}
+  .wrap{max-width:1140px;margin:0 auto;padding:0}
+  section,footer,.panel{scroll-margin-top:96px}
+  .side-index{position:sticky;top:96px;align-self:start;padding:46px 0 0}
+  .side-index nav{display:flex;flex-direction:column;gap:6px;border-left:1px solid var(--line);
+    padding-left:14px}
+  .side-index a{font-size:13px;font-weight:700;color:var(--ink-3);text-decoration:none;
+    padding:8px 10px;border-radius:8px;transition:.18s}
+  .side-index .main{color:var(--ink-2)}
+  .side-index .sub{font-size:12.5px;font-weight:600;padding-left:22px}
+  .side-index .sub::before{content:"";display:inline-block;width:5px;height:5px;
+    border-radius:50%;background:var(--line-2);margin-right:8px;vertical-align:middle}
+  .side-index a:hover{background:var(--accent-soft);color:var(--accent)}
+  .side-index .sub:hover::before{background:var(--accent)}
+  .side-index .label{font-family:var(--font-mono);font-size:11px;font-weight:700;
+    color:var(--ink-4);text-transform:uppercase;letter-spacing:.12em;margin:0 0 8px 10px}
 
   /* ── Header ───────────────────────────────────────────── */
   header.top{
@@ -76,6 +92,10 @@
   .btn:hover{border-color:var(--accent);color:var(--accent);transform:translateY(-1px);
     box-shadow:var(--shadow)}
   .btn svg{width:14px;height:14px}
+  .btn_tipo{font-family:var(--font-body);font-weight:600;font-size:13px;
+    border:1px solid var(--line-2);background:var(--paper-2);color:var(--ink);
+    padding:8px 14px;border-radius:9px;cursor:pointer;transition:.18s;
+    display:inline-flex;align-items:center;gap:7px}
   .date-picker{display:flex;align-items:center;gap:8px;font-size:12.5px;
     font-weight:600;color:var(--ink-3);text-transform:uppercase;letter-spacing:.06em}
   .date-picker input{font-family:var(--font-mono);font-size:12.5px;font-weight:500;
@@ -233,6 +253,15 @@
   footer p{margin-bottom:7px;line-height:1.6}
 
   @media(max-width:820px){
+    .layout{display:block;padding:0 18px}
+    .wrap{padding:0}
+    .side-index{position:sticky;top:78px;z-index:40;padding:10px 0 0;background:var(--paper)}
+    .side-index nav{flex-direction:row;overflow-x:auto;border-left:0;border-bottom:1px solid var(--line);
+      padding:0 0 10px;gap:8px}
+    .side-index .label{display:none}
+    .side-index a{white-space:nowrap;background:var(--paper-2);border:1px solid var(--line)}
+    .side-index .sub{padding-left:10px}
+    .side-index .sub::before{display:none}
     .stats{grid-template-columns:repeat(2,1fr)}
     .sec-head h2{font-size:24px}
     .barrow{grid-template-columns:110px 1fr 60px}
@@ -251,6 +280,12 @@
 
 <header class="top">
   <div class="top-inner">
+    <button class="btn_tipo" id="energia">
+      Energia
+    </button>
+    <button class="btn_tipo" id="agua">
+      Agua
+    </button>
     <div class="brand">
       <div class="mark" aria-hidden="true"></div>
       <div>
@@ -277,6 +312,20 @@
   </div>
 </header>
 
+<div class="layout">
+  <aside class="side-index" aria-label="Índice do dashboard">
+    <div class="label">Índice</div>
+    <nav>
+      <a class="main" href="#ontem">Retrospetiva</a>
+      <a class="sub" href="#posicoes-cpe">Onde cada CPE caiu</a>
+      <a class="sub" href="#desvios">Desvios detetados</a>
+      <a class="main" href="#amanha">Previsão</a>
+      <a class="sub" href="#perfil-horario">Perfil horário previsto</a>
+      <a class="sub" href="#maiores-consumos">Maiores consumos previstos</a>
+      <a class="sub" href="#tabela-previsao">Todos os CPEs ativos</a>
+    </nav>
+  </aside>
+
 <div class="wrap">
 
   <!-- ══ SECÇÃO 1 — ONTEM ══ -->
@@ -294,7 +343,7 @@
       <div class="card lowc"><span class="tag"></span><div class="lab"><span class="pill l"></span>Desvios (baixa conf.)</div><div class="num"><span class="skel" style="display:block;width:40px;height:30px"></span></div></div>
     </div>
 
-    <div class="panel">
+    <div class="panel" id="posicoes-cpe">
       <div class="panel-head">
         <h3>Onde cada CPE caiu</h3>
         <span class="hint">cada ponto é um CPE · a faixa verde é o intervalo considerado normal</span>
@@ -302,7 +351,7 @@
       <div class="panel-body" id="stripWrap"><div class="spinner"></div></div>
     </div>
 
-    <div class="panel">
+    <div class="panel" id="desvios">
       <div class="panel-head">
         <h3 id="alertTitle">Desvios detetados</h3>
         <span class="hint">ordenados pelo tamanho do desvio</span>
@@ -325,7 +374,15 @@
       <div class="card lowc"><span class="tag"></span><div class="lab"><span class="pill l"></span>Tipo de dia previsto</div><div class="num" style="font-size:24px"><span class="skel" style="display:block;width:80px;height:24px"></span></div></div>
     </div>
 
-    <div class="panel">
+    <div class="panel" id="perfil-horario">
+      <div class="panel-head">
+        <h3>Perfil horário previsto</h3>
+        <span class="hint">soma prevista para cada hora do dia seguinte</span>
+      </div>
+      <div class="panel-body" id="hourlyPredWrap"><div class="spinner"></div></div>
+    </div>
+
+    <div class="panel" id="maiores-consumos">
       <div class="panel-head">
         <h3>Maiores consumos previstos</h3>
         <span class="hint">os 10 CPEs que se espera consumirem mais amanhã</span>
@@ -333,7 +390,7 @@
       <div class="panel-body" id="topPredWrap"><div class="spinner"></div></div>
     </div>
 
-    <div class="panel">
+    <div class="panel" id="tabela-previsao">
       <div class="panel-head">
         <h3>Previsão de todos os CPEs ativos</h3>
         <span class="hint" id="predTableHint">os CPEs que reportaram ontem · clica nos títulos para ordenar</span>
@@ -342,7 +399,7 @@
     </div>
   </section>
 
-  <footer>
+  <footer id="fontes">
     <div class="grid">
       <div>
         <h5>Como funciona</h5>
@@ -359,6 +416,8 @@
       </div>
     </div>
   </footer>
+
+</div>
 
 </div>
 
@@ -443,9 +502,11 @@ async function fetchReincidencias(dateStr, diasBack=REINCIDENCIA_DIAS){
 
     try{
       const rows = parseCSV(res.text);
+      const vistosNoDia = new Set();
 
       rows.forEach(r=>{
-        if(r.veredicto === "desvio" && r.CPE){
+        if(r.veredicto === "desvio" && r.CPE && !vistosNoDia.has(r.CPE)){
+          vistosNoDia.add(r.CPE);
           const atual = hist.get(r.CPE) || {count:0, dates:[]};
           atual.count += 1;
           atual.dates.push(ds);
@@ -473,19 +534,25 @@ async function fetchSparklineHistory(dateStr, cpes, diasBack=SPARKLINE_DIAS){
 
     try{
       const rows = parseCSV(res.text);
+      const diaVals = new Map();
 
       rows.forEach(r=>{
         if(cpes.has(r.CPE) && r.consumo_real !== ""){
           const v = +r.consumo_real;
 
           if(!isNaN(v)){
-            hist.get(r.CPE).push({
-              date: ds,
-              value: v,
-              offset: i
-            });
+            const vals = diaVals.get(r.CPE) || [];
+            vals.push(v);
+            diaVals.set(r.CPE, vals);
           }
         }
+      });
+      diaVals.forEach((vals, cpe)=>{
+        hist.get(cpe).push({
+          date: ds,
+          value: vals.reduce((a,b)=>a+b,0) / vals.length,
+          offset: i
+        });
       });
     }catch(e){}
   }
@@ -662,8 +729,9 @@ function renderStrip(container, rows, threshold){
     let fill="var(--lowconf)", op=".55", rad=4;
     if(r.z>threshold){ fill="var(--high)"; op=".9"; rad=5; }
     else if(r.z<-threshold){ fill="var(--low)"; op=".9"; rad=5; }
+    const horaTxt = r.hora===null ? "" : `  ·  ${String(r.hora).padStart(2,"0")}h`;
     s += `<circle cx="${x(zc).toFixed(1)}" cy="${(midY+jit).toFixed(1)}" r="${rad}" fill="${fill}" fill-opacity="${op}">`
-       + `<title>${r.cpe}  ·  z=${r.z>0?"+":""}${nice(r.z,2)}  ·  ${r.veredicto}</title></circle>`;
+       + `<title>${r.cpe}${horaTxt}  ·  z=${r.z>0?"+":""}${nice(r.z,2)}  ·  ${r.veredicto}</title></circle>`;
   });
   // rótulos extremos
   s += `<text x="${padL}" y="18" font-size="11" text-anchor="start" fill="var(--low)">← consumiu menos</text>`;
@@ -734,6 +802,42 @@ function renderLines(container, labels, series, opts={}){
   container.innerHTML = leg + s;
 }
 
+function renderHourlyProfile(container, rows){
+  if(!rows.length){ container.innerHTML = emptyMsg("Sem previsão horária para mostrar."); return; }
+  const horas = Array.from({length:24}, (_,i)=>i);
+  const vals = horas.map(h=>rows.filter(r=>r.hora===h).reduce((a,r)=>a+(r.prev||0),0));
+  const W=920, H=300, padL=52, padR=18, padT=22, padB=44;
+  const innerW=W-padL-padR, innerH=H-padT-padB;
+  let ymax = Math.max(...vals, 1);
+  ymax *= 1.15;
+  const X = i => padL + (i + 0.5) / 24 * innerW;
+  const Y = v => padT + (1 - v / ymax) * innerH;
+  const barW = innerW / 24 * 0.62;
+
+  let s = svgEl(W,H);
+  for(let k=0;k<=5;k++){
+    const v = k/5*ymax, yy=Y(v);
+    s += `<line class="grid-line" x1="${padL}" y1="${yy}" x2="${padL+innerW}" y2="${yy}"/>`;
+    s += `<text x="${padL-10}" y="${yy+4}" font-size="11" text-anchor="end">${nice(v,0)}</text>`;
+  }
+  vals.forEach((v,i)=>{
+    const x = X(i)-barW/2, y=Y(v), h=padT+innerH-y;
+    s += `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${barW.toFixed(1)}" height="${Math.max(h,1).toFixed(1)}"
+            rx="4" fill="var(--pred)" opacity=".82">
+            <title>${String(i).padStart(2,"0")}h · ${nice(v)} kWh</title>
+          </rect>`;
+  });
+  horas.forEach(h=>{
+    if(h % 3 === 0 || h === 23){
+      s += `<text x="${X(h)}" y="${H-padB+18}" font-size="10.5" text-anchor="middle">${String(h).padStart(2,"0")}h</text>`;
+    }
+  });
+  s += `<line class="axis-line" x1="${padL}" y1="${padT+innerH}" x2="${padL+innerW}" y2="${padT+innerH}"/>`;
+  s += `</svg>`;
+  container.innerHTML =
+    `<div class="legend"><span style="color:var(--pred)"><i style="background:var(--pred)"></i><span style="color:var(--ink-2)">consumo previsto por hora</span></span></div>` + s;
+}
+
 function emptyMsg(t){ return `<div class="empty"><p>${t}</p></div>`; }
 function emptyCmd(title,sub,cmd){
   return `<div class="empty"><h4>${title}</h4><p>${sub}</p><code>${cmd}</code></div>`;
@@ -773,6 +877,7 @@ function renderOntem(res, reincidencias = new Map(), sparkHistory = new Map()){
   }
   const rows = parseCSV(res.text).map(r=>({
     cpe:r.CPE, cluster:r.cluster, tipo:r.tipo_dia,
+    hora:r.hora==="" || r.hora===undefined ? null : +r.hora,
     real:+r.consumo_real, hab:+r.consumo_habitual, std:+r.std,
     z:+r.z_score, veredicto:r.veredicto, direcao:r.direcao,
     confianca:r.confianca, ndias:+r.n_dias_tipo, threshold:+r.threshold,
@@ -782,6 +887,7 @@ function renderOntem(res, reincidencias = new Map(), sparkHistory = new Map()){
   const alta = desvios.filter(r=>r.confianca==="alta");
   const baixa = desvios.filter(r=>r.confianca==="baixa");
   const normal = rows.length - desvios.length;
+  const cpesAnalisados = new Set(rows.map(r=>r.cpe)).size;
 
   updateDayStatus(desvios.length, alta.length, baixa.length);
 
@@ -792,10 +898,10 @@ function renderOntem(res, reincidencias = new Map(), sparkHistory = new Map()){
 
   // cards
   const cards = $("#statCards"); cards.style.display="";
-  setCard(cards,0,rows.length,"todos os CPEs com dados");
-  setCard(cards,1,normal, rows.length? (Math.round(normal/rows.length*100)+"% do total"):"");
-  setCard(cards,2,alta.length,"merecem verificação");
-  setCard(cards,3,baixa.length,"poucos dados históricos");
+  setCard(cards,0,cpesAnalisados,`${rows.length} pontos CPE/hora`);
+  setCard(cards,1,normal, rows.length? (Math.round(normal/rows.length*100)+"% dos pontos"):"");
+  setCard(cards,2,alta.length,"pontos a verificar");
+  setCard(cards,3,baixa.length,"pontos com pouco histórico");
 
   renderStrip($("#stripWrap"), rows, thr);
 
@@ -812,6 +918,7 @@ function renderOntem(res, reincidencias = new Map(), sparkHistory = new Map()){
     const up = r.direcao==="acima";
     const pct = (r.real-r.hab)/Math.max(Math.abs(r.hab),0.001)*100;
     const cl = (r.cluster && r.cluster!=="" && r.cluster.toLowerCase()!=="nan") ? `Cluster ${r.cluster}` : "sem cluster";
+    const hourChip = r.hora===null ? "" : `<span class="chip">${String(r.hora).padStart(2,"0")}h</span>`;
     const lowc = r.confianca==="baixa" ? `<span class="chip" style="background:var(--accent-soft);color:var(--accent)">baixa confiança</span>` : "";
         const rec = reincidencias.get(r.cpe);
     const repeatChip = rec && rec.count > 0
@@ -823,15 +930,15 @@ function renderOntem(res, reincidencias = new Map(), sparkHistory = new Map()){
       <div class="body">
         <div class="r1">
           <span class="cpe">${r.cpe}</span>
-          <span class="chip">${cl}</span>${lowc}${repeatChip}
+          <span class="chip">${cl}</span>${hourChip}${lowc}${repeatChip}
         </div>
-        <div class="desc">${up?"Consumiu <b>mais</b>":"Consumiu <b>menos</b>"} do que o habitual para este dia da semana.</div>
+        <div class="desc">${up?"Consumiu <b>mais</b>":"Consumiu <b>menos</b>"} do que o habitual ${r.hora===null?"":"às " + String(r.hora).padStart(2,"0") + "h"}.</div>
         <div class="nums">
           <div><span class="k">Real</span><span class="v ${up?"acc-up":"acc-down"}">${nice(r.real)} kWh</span></div>
           <div><span class="k">Habitual</span><span class="v">${nice(r.hab)} ± ${nice(r.std)}</span></div>
           <div><span class="k">Desvio</span><span class="v ${up?"acc-up":"acc-down"}">${pct>0?"+":""}${nice(pct,0)}%</span></div>
           <div><span class="k">z-score</span><span class="v">${r.z>0?"+":""}${nice(r.z,2)}</span></div>
-          <div><span class="k">Histórico</span><span class="v">${r.ndias} dias</span></div>
+          <div><span class="k">Histórico</span><span class="v">${r.ndias} obs.</span></div>
         </div>
       </div>
       <div class="spark-box">
@@ -857,6 +964,7 @@ function renderAmanha(res, activeCpes){
   if(!res){
     $("#amanhaSub").textContent = "Ainda não há previsão gravada.";
     cards.style.display="none";
+    $("#hourlyPredWrap").innerHTML = "";
     $("#topPredWrap").innerHTML = emptyCmd(
       "Sem previsão disponível",
       "A previsão do próximo dia é gerada pelo programa de deteção.",
@@ -865,6 +973,7 @@ function renderAmanha(res, activeCpes){
     return;
   }
   let rows = parseCSV(res.text).map(r=>({cpe:r.CPE, data:r.data, tipo:r.tipo_dia,
+    hora:r.hora==="" || r.hora===undefined ? null : +r.hora,
     prev:+r.previsao, std:+r.std,
     lo:+r.low_2sigma, hi:+r.high_2sigma, conf:r.confianca}));
 
@@ -874,18 +983,27 @@ function renderAmanha(res, activeCpes){
 
   const total = rowsActive.reduce((a,r)=>a+(r.prev||0),0);
   const totalStd = rowsActive.reduce((a,r)=>a+(r.std||0),0);
+  const cpesPrevistos = new Set(rowsActive.map(r=>r.cpe)).size;
   const tipo = (rowsActive[0]||rows[0])?.tipo;
 
   $("#amanhaSub").innerHTML = `Estimativa para <b>${prettyDate(res.date)}</b> (${tipoLabel(tipo)}), ` +
     `com base na média histórica de cada CPE em dias do mesmo tipo.` +
-    (set ? ` A mostrar os <b>${rowsActive.length}</b> CPEs que reportaram ontem.` : "");
+    (set ? ` A mostrar os <b>${cpesPrevistos}</b> CPEs que reportaram ontem.` : "");
   cards.style.display="";
   setCard(cards,0, `${nice(total,0)} kWh`, `± ${nice(totalStd,0)} no total`);
-  setCard(cards,1, rowsActive.length, set? "ativos (reportaram ontem)":"previsão por contador");
+  setCard(cards,1, cpesPrevistos, set? "ativos (reportaram ontem)":"previsão por contador");
   setCard(cards,2, tipoLabel(tipo), "feriados têm regra própria");
 
-  // Gráfico top-10 (dos ativos)
-  const top = [...rowsActive].sort((a,b)=>b.prev-a.prev).slice(0,10);
+  renderHourlyProfile($("#hourlyPredWrap"), rowsActive.filter(r=>r.hora !== null));
+
+  // Grafico top-10 (dos ativos), agregado pelo total diario previsto
+  const porCpe = new Map();
+  rowsActive.forEach(r=>{
+    const atual = porCpe.get(r.cpe) || {cpe:r.cpe, prev:0};
+    atual.prev += r.prev || 0;
+    porCpe.set(r.cpe, atual);
+  });
+  const top = [...porCpe.values()].sort((a,b)=>b.prev-a.prev).slice(0,10);
   const max = top.length?top[0].prev:1;
   $("#topPredWrap").innerHTML = top.map(r=>`
     <div class="barrow">
@@ -893,13 +1011,13 @@ function renderAmanha(res, activeCpes){
       <div class="track"><div class="fill" style="width:${(r.prev/max*100).toFixed(1)}%"></div></div>
       <span class="vl">${nice(r.prev)}</span>
     </div>`).join("") +
-    `<div class="legend" style="margin-top:12px"><span style="color:var(--ink-4)">valores em kWh previstos para ${prettyDate(res.date)}</span></div>`;
+    `<div class="legend" style="margin-top:12px"><span style="color:var(--ink-4)">totais horários somados para ${prettyDate(res.date)}</span></div>`;
 
   // Tabela completa (pesquisável + ordenável)
   PRED_STATE = { rows:rowsActive, date:res.date, sortKey:"prev", sortDir:-1, query:"" };
   $("#predTableHint").textContent = set
-    ? "os CPEs que reportaram ontem · clica nos títulos para ordenar"
-    : "todos os CPEs previstos · clica nos títulos para ordenar";
+    ? "linhas CPE/hora dos CPEs que reportaram ontem · clica nos títulos para ordenar"
+    : "linhas CPE/hora previstas · clica nos títulos para ordenar";
   drawPredTable();
 }
 
@@ -919,6 +1037,7 @@ function drawPredTable(){
   const arrow = k => sortKey===k ? (sortDir<0?" ▾":" ▴") : "";
   const head = `<tr>
     <th data-k="cpe" style="cursor:pointer">CPE${arrow("cpe")}</th>
+    <th data-k="hora" style="cursor:pointer">Hora${arrow("hora")}</th>
     <th data-k="prev" style="cursor:pointer">Previsto (kWh)${arrow("prev")}</th>
     <th data-k="std" style="cursor:pointer">± σ${arrow("std")}</th>
     <th>Intervalo provável (±2σ)</th>
@@ -931,6 +1050,7 @@ function drawPredTable(){
     const lo = Math.max(0, r.lo);
     return `<tr>
       <td>${r.cpe}</td>
+      <td>${r.hora === null ? "dia" : String(r.hora).padStart(2,"0") + "h"}</td>
       <td>${nice(r.prev)}</td>
       <td style="color:var(--ink-3)">${nice(r.std)}</td>
       <td style="color:var(--ink-3)">${nice(lo)} – ${nice(r.hi)}</td>

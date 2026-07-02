@@ -45,11 +45,12 @@ THRESHOLD_POR_TIPO = {
     "feriado"   : 3.0,
 }
 MIN_HIST_IDEAL       = 10    # dias do mesmo tipo para confiança "alta"
-MIN_HIST_ABSOLUTO    = 3     # mínimo absoluto para usar o CPE
+MIN_HIST_ABSOLUTO    = 2     # mínimo absoluto para usar o CPE/hora
 Z_CAP                = 10.0  # limite de |z|
 STD_MIN_FRAC         = 0.10  # std mínimo = 10% do habitual
 STD_ABSOLUTO         = 0.3   # piso absoluto para evitar div/0
 BASELINE_WINDOW_DAYS = 60    # janela móvel para captar sazonalidade
+MIN_HORAS_DIA_COMPLETO = 18  # evita escolher dias ainda quase vazios
 
 
 class Cor:
@@ -75,6 +76,7 @@ class Parametros:
 class ResultadoCPE:
     cpe:              str
     data:             date
+    hora:             int
     cluster:          Optional[int]
     tipo_dia:         str
     consumo_real:     float
@@ -94,6 +96,7 @@ class ResultadoCPE:
 class Previsao:
     cpe:            str
     data:           date
+    hora:           int
     tipo_dia:       str
     previsao:       float
     std:            float
@@ -136,13 +139,33 @@ def configurar_logging(quiet: bool = False) -> logging.Logger:
 def carregar_dados_baze(logger: logging.Logger) -> pd.DataFrame:
     logger.info(f"{Cor.CIANO}→ A pedir dados ao BaZe "
                 f"({len(CPES_CONFIG)} CPEs)...{Cor.RESET}")
-    df = carregar_ontem(CPES_CONFIG, usar_cache=True)
+    df = carregar_ontem(CPES_CONFIG, usar_cache=False)
 
     if df.empty:
         logger.error(f"{Cor.VERMELHO}Sem dados retornados pelo BaZe.{Cor.RESET}")
         logger.error("       Verifica a ligação à rede da CMMaia.")
         sys.exit(3)
     return df
+
+
+def agregar_para_hora(df: pd.DataFrame) -> pd.DataFrame:
+    df = df.copy()
+    df["tstamp"] = pd.to_datetime(df["tstamp"])
+    df["data"] = df["tstamp"].dt.date
+    df["hora"] = df["tstamp"].dt.hour
+
+    df_hora = (
+        df.groupby(["CPE", "data", "hora"], as_index=False)
+        .agg(
+            PotActiva=("PotActiva", "sum"),
+            n_registos=("PotActiva", "size"),
+        )
+    )
+    df_hora["tstamp"] = (
+        pd.to_datetime(df_hora["data"].astype(str))
+        + pd.to_timedelta(df_hora["hora"], unit="h")
+    )
+    return df_hora
 
 
 def carregar_dados_zip(logger: logging.Logger) -> pd.DataFrame:
@@ -156,14 +179,7 @@ def carregar_dados_zip(logger: logging.Logger) -> pd.DataFrame:
         with z.open(z.namelist()[0]) as f:
             df = pd.read_csv(f)
 
-    df["tstamp"] = pd.to_datetime(df["tstamp"])
-    df["data"]   = df["tstamp"].dt.date
-    df_diario = (
-        df.groupby(["CPE", "data"])["PotActiva"]
-        .mean().reset_index()
-    )
-    df_diario["tstamp"] = pd.to_datetime(df_diario["data"])
-    return df_diario
+    return agregar_para_hora(df)
 
 
 def carregar_dados(modo: str, logger: logging.Logger) -> pd.DataFrame:
@@ -175,9 +191,8 @@ def carregar_dados(modo: str, logger: logging.Logger) -> pd.DataFrame:
                      f"dados. Colunas: {list(df.columns)}{Cor.RESET}")
         sys.exit(2)
 
-    df["tstamp"] = pd.to_datetime(df["tstamp"])
-    df["data"]   = df["tstamp"].dt.date
-    return df.sort_values(["CPE", "data"]).reset_index(drop=True)
+    df = agregar_para_hora(df)
+    return df.sort_values(["CPE", "data", "hora"]).reset_index(drop=True)
 
 
 def carregar_clusters(logger: logging.Logger) -> dict:
@@ -209,25 +224,38 @@ class ClassificadorDia:
         return self.feriados.get(d)
 
 
+def escolher_data_alvo(df: pd.DataFrame) -> date:
+    horas_por_dia = df.groupby("data")["hora"].nunique().sort_index()
+    dias_completos = horas_por_dia[horas_por_dia >= MIN_HORAS_DIA_COMPLETO]
+    if not dias_completos.empty:
+        return dias_completos.index[-1]
+    return max(df["data"].unique())
+
+
 # ANÁLISE — baseline por CPE com janela móvel
 
 def analisar_cpe(
     cpe: str,
     data_alvo: date,
+    hora: int,
     tipo_dia: str,
     df_cpe: pd.DataFrame,
     cluster_id: Optional[int],
 ) -> Optional[ResultadoCPE]:
-    consumo_ontem = df_cpe[df_cpe["data"] == data_alvo]["PotActiva"]
-    if consumo_ontem.empty:
+    consumo_hora = df_cpe[
+        (df_cpe["data"] == data_alvo)
+        & (df_cpe["hora"] == hora)
+    ]["PotActiva"]
+    if consumo_hora.empty:
         return None
-    consumo_real = float(consumo_ontem.iloc[0])
+    consumo_real = float(consumo_hora.iloc[0])
 
     threshold = THRESHOLD_POR_TIPO[tipo_dia]
     janela_inicio = data_alvo - timedelta(days=BASELINE_WINDOW_DAYS)
 
     df_hist_tipo = df_cpe[
         (df_cpe["data"] != data_alvo)
+        & (df_cpe["hora"] == hora)
         & (df_cpe["tipo_dia"] == tipo_dia)
         & (df_cpe["data"] >= janela_inicio)
     ]
@@ -245,6 +273,7 @@ def analisar_cpe(
         # Fallback: histórico recente do CPE (sem filtrar por tipo de dia)
         df_hist = df_cpe[
             (df_cpe["data"] != data_alvo)
+            & (df_cpe["hora"] == hora)
             & (df_cpe["data"] >= janela_inicio)
         ]
         if len(df_hist) < MIN_HIST_ABSOLUTO:
@@ -252,6 +281,7 @@ def analisar_cpe(
         confianca = "baixa"
         fonte_baseline = f"fallback ({BASELINE_WINDOW_DAYS}d recentes)"
 
+    n_hist_usado = len(df_hist)
     media = float(df_hist["PotActiva"].mean())
     std   = float(df_hist["PotActiva"].std())
     if pd.isna(std):
@@ -265,14 +295,15 @@ def analisar_cpe(
     direcao   = "acima" if z_capped > 0 else "abaixo"
 
     return ResultadoCPE(
-        cpe=cpe, data=data_alvo, cluster=cluster_id, tipo_dia=tipo_dia,
+        cpe=cpe, data=data_alvo, hora=hora,
+        cluster=cluster_id, tipo_dia=tipo_dia,
         consumo_real=round(consumo_real, 2),
         consumo_esperado=round(media, 2),
         std_esperado=round(std, 2),
         z_score=round(z_capped, 2),
         z_real=round(z, 2),
         veredicto=veredicto, direcao=direcao,
-        n_dias_tipo=n_dias_tipo,
+        n_dias_tipo=n_hist_usado,
         confianca=confianca,
         fonte_baseline=fonte_baseline,
         threshold=threshold,
@@ -284,10 +315,14 @@ def analisar_cpe(
 def prever_cpe(
     cpe: str,
     data_prever: date,
+    hora: int,
     tipo_dia: str,
     df_cpe: pd.DataFrame,
 ) -> Optional[Previsao]:
-    df_cpe = df_cpe[df_cpe["data"] != data_prever]
+    df_cpe = df_cpe[
+        (df_cpe["data"] != data_prever)
+        & (df_cpe["hora"] == hora)
+    ]
     if df_cpe.empty:
         return None
 
@@ -321,7 +356,7 @@ def prever_cpe(
     std = max(std, abs(media) * STD_MIN_FRAC, STD_ABSOLUTO)
 
     return Previsao(
-        cpe=cpe, data=data_prever, tipo_dia=tipo_dia,
+        cpe=cpe, data=data_prever, hora=hora, tipo_dia=tipo_dia,
         previsao=round(media, 2),
         std=round(std, 2),
         low_1sigma=round(media - std, 2),
@@ -381,10 +416,10 @@ def imprimir_resumo(
 def _imprimir_bloco_desvio(r: ResultadoCPE, logger: logging.Logger):
     if r.direcao == "acima":
         icone, cor = "🔴", Cor.VERMELHO
-        desc = "consumiu MAIS que o habitual"
+        desc = f"consumiu MAIS que o habitual às {r.hora:02d}h"
     else:
         icone, cor = "🔵", Cor.AZUL
-        desc = "consumiu MENOS que o habitual"
+        desc = f"consumiu MENOS que o habitual às {r.hora:02d}h"
 
     pct = ((r.consumo_real - r.consumo_esperado)
            / max(abs(r.consumo_esperado), 0.001) * 100)
@@ -402,7 +437,7 @@ def _imprimir_bloco_desvio(r: ResultadoCPE, logger: logging.Logger):
         f"± {r.std_esperado:.1f} kWh   "
         f"{Cor.DIM}z:{Cor.RESET} {z_str}   "
         f"{Cor.DIM}desvio:{Cor.RESET} {pct:+.0f}%   "
-        f"{Cor.DIM}({r.n_dias_tipo} dias {r.tipo_dia}){Cor.RESET}"
+        f"{Cor.DIM}({r.n_dias_tipo} obs. {r.tipo_dia}){Cor.RESET}"
     )
     logger.info("")
 
@@ -466,10 +501,11 @@ def imprimir_resumo_predicao(
 
     n_alta  = sum(1 for p in previsoes if p.confianca == "alta")
     n_baixa = sum(1 for p in previsoes if p.confianca == "baixa")
+    n_cpes = len({p.cpe for p in previsoes})
     total_prev = sum(p.previsao for p in previsoes)
     total_std  = sum(p.std for p in previsoes)
 
-    logger.info(f"  {Cor.ROXO}● CPEs previstos{Cor.RESET}        {len(previsoes):4d} "
+    logger.info(f"  {Cor.ROXO}● CPEs previstos{Cor.RESET}        {n_cpes:4d} "
                 f"{Cor.DIM}(alta: {n_alta}, baixa: {n_baixa}){Cor.RESET}")
     logger.info(f"  {Cor.ROXO}● Consumo total previsto{Cor.RESET} "
                 f"{total_prev:7.1f} kWh {Cor.DIM}(±{total_std:.1f}){Cor.RESET}")
@@ -485,6 +521,7 @@ def exportar_previsoes(
     rows = [{
         "CPE"            : p.cpe,
         "data"           : p.data,
+        "hora"           : p.hora,
         "tipo_dia"       : p.tipo_dia,
         "previsao"       : p.previsao,
         "std"            : p.std,
@@ -551,10 +588,20 @@ def validar_previsoes(
         if not cols_necessarias.issubset(df_p.columns):
             continue
 
-        merge = df_p.merge(
-            reais[["CPE", "PotActiva"]].rename(columns={"PotActiva": "real"}),
-            on="CPE", how="inner"
-        )
+        if "hora" in df_p.columns and "hora" in reais.columns:
+            merge = df_p.merge(
+                reais[["CPE", "hora", "PotActiva"]].rename(
+                    columns={"PotActiva": "real"}
+                ),
+                on=["CPE", "hora"], how="inner"
+            )
+        else:
+            reais_diarios = (
+                reais.groupby("CPE", as_index=False)["PotActiva"]
+                .sum()
+                .rename(columns={"PotActiva": "real"})
+            )
+            merge = df_p.merge(reais_diarios, on="CPE", how="inner")
         if merge.empty:
             continue
 
@@ -570,7 +617,8 @@ def validar_previsoes(
         validacoes.append({
             "data"      : data_prevista,
             "tipo_dia"  : tipo_dia,
-            "n_cpes"    : len(merge),
+            "n_cpes"    : merge["CPE"].nunique(),
+            "n_pontos"  : len(merge),
             "MAE"       : round(merge["erro_abs"].mean(), 2),
             "MAPE"      : round(merge["erro_abs"].mean() /
                                 merge["real"].clip(lower=0.01).mean() * 100, 1),
@@ -619,7 +667,7 @@ def validar_previsoes(
 def gerar_grafico_alerta(r: ResultadoCPE, df_cpe: pd.DataFrame) -> Path:
     import matplotlib.pyplot as plt
 
-    df_cpe = df_cpe.sort_values("data")
+    df_cpe = df_cpe[df_cpe["hora"] == r.hora].sort_values("data")
     threshold = r.threshold
 
     fig, ax = plt.subplots(figsize=(14, 5), facecolor="#FAFBFC")
@@ -652,7 +700,7 @@ def gerar_grafico_alerta(r: ResultadoCPE, df_cpe: pd.DataFrame) -> Path:
     conf_str = "" if r.confianca == "alta" else "  ⚠ baixa confiança"
 
     ax.set_title(
-        f"{r.cpe}  |  {r.data}  ({r.tipo_dia.replace('_', ' ')})  |  "
+        f"{r.cpe}  |  {r.data} {r.hora:02d}h  ({r.tipo_dia.replace('_', ' ')})  |  "
         f"{cluster_str}  |  DESVIO {pct:+.0f}%{conf_str}",
         fontweight="bold", fontsize=12,
         color="#E74C3C" if r.direcao == "acima" else "#3498DB"
@@ -664,7 +712,7 @@ def gerar_grafico_alerta(r: ResultadoCPE, df_cpe: pd.DataFrame) -> Path:
 
     plt.tight_layout()
     PLOTS_DIR.mkdir(parents=True, exist_ok=True)
-    out = PLOTS_DIR / f"alerta_{r.cpe}_{r.data}.png"
+    out = PLOTS_DIR / f"alerta_{r.cpe}_{r.data}_{r.hora:02d}h.png"
     plt.savefig(out, dpi=130, bbox_inches="tight", facecolor="#FAFBFC")
     plt.close(fig)
     return out
@@ -677,6 +725,7 @@ def exportar_resultados(
 ) -> Path:
     rows = [{
         "CPE"              : r.cpe,
+        "hora"             : r.hora,
         "cluster"          : r.cluster,
         "tipo_dia"         : r.tipo_dia,
         "consumo_real"     : r.consumo_real,
@@ -758,7 +807,7 @@ def main() -> int:
         # 1. Dados
         df = carregar_dados(params.modo_dados, logger)
         if params.data_alvo is None:
-            params.data_alvo = max(df["data"].unique())
+            params.data_alvo = escolher_data_alvo(df)
             # Back-test honesto: nunca usar dados posteriores ao dia analisado
             df = df[df["data"] <= params.data_alvo]
 
@@ -775,7 +824,9 @@ def main() -> int:
         tipo_alvo    = classificador(params.data_alvo)
         nome_feriado = classificador.nome_feriado(params.data_alvo)
 
-        cpes_com_dados = df[df["data"] == params.data_alvo]["CPE"].unique()
+        df_alvo = df[df["data"] == params.data_alvo]
+        cpes_com_dados = df_alvo["CPE"].unique()
+        pontos_alvo = df_alvo[["CPE", "hora"]].drop_duplicates()
         imprimir_cabecalho(params, tipo_alvo, nome_feriado,
                            len(cpes_com_dados), logger)
 
@@ -788,20 +839,23 @@ def main() -> int:
 
         # 4. PARTE 1 — Retrospetiva
         logger.info(f"{Cor.CIANO}→ A analisar {len(cpes_com_dados)} "
-                    f"CPEs (retrospetiva)...{Cor.RESET}")
+                    f"CPEs / {len(pontos_alvo)} pontos horários "
+                    f"(retrospetiva)...{Cor.RESET}")
 
         resultados: list[ResultadoCPE] = []
         alertas:    list[ResultadoCPE] = []
         n_sem_hist = 0
 
-        for cpe in cpes_com_dados:
+        for ponto in pontos_alvo.itertuples(index=False):
+            cpe = ponto.CPE
+            hora = int(ponto.hora)
             df_cpe = grupos.get(cpe)
             if df_cpe is None:
                 n_sem_hist += 1
                 continue
 
             r = analisar_cpe(
-                cpe, params.data_alvo, tipo_alvo, df_cpe,
+                cpe, params.data_alvo, hora, tipo_alvo, df_cpe,
                 cluster_map.get(cpe)
             )
             if r is None:
@@ -844,9 +898,10 @@ def main() -> int:
 
             previsoes: list[Previsao] = []
             for cpe, df_cpe in grupos.items():
-                p = prever_cpe(cpe, data_prever, tipo_prever, df_cpe)
-                if p is not None:
-                    previsoes.append(p)
+                for hora in range(24):
+                    p = prever_cpe(cpe, data_prever, hora, tipo_prever, df_cpe)
+                    if p is not None:
+                        previsoes.append(p)
 
             imprimir_resumo_predicao(previsoes, data_prever, tipo_prever,
                                      fer_prever, logger)
