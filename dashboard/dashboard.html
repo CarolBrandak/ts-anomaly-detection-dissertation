@@ -54,6 +54,7 @@
   .side-index .sub:hover::before{background:var(--accent)}
   .side-index .label{font-family:var(--font-mono);font-size:11px;font-weight:700;
     color:var(--ink-4);text-transform:uppercase;letter-spacing:.12em;margin:0 0 8px 10px}
+  body.sem-previsao .prediction-only{display:none!important}
 
   /* ── Header ───────────────────────────────────────────── */
   header.top{
@@ -329,10 +330,10 @@
       <a class="main" href="#ontem">Retrospetiva</a>
       <a class="sub" href="#posicoes-cpe">Onde cada CPE caiu</a>
       <a class="sub" href="#desvios">Desvios detetados</a>
-      <a class="main" href="#amanha">Previsão</a>
-      <a class="sub" href="#perfil-horario">Perfil horário previsto</a>
-      <a class="sub" href="#maiores-consumos">Maiores consumos previstos</a>
-      <a class="sub" href="#tabela-previsao">Todos os CPEs ativos</a>
+      <a class="main prediction-only" href="#amanha">Previsão</a>
+      <a class="sub prediction-only" href="#perfil-horario">Perfil horário previsto</a>
+      <a class="sub prediction-only" href="#maiores-consumos">Maiores consumos previstos</a>
+      <a class="sub prediction-only" href="#tabela-previsao">Todos os CPEs ativos</a>
     </nav>
   </aside>
 
@@ -371,7 +372,7 @@
   </section>
 
   <!-- ══ SECÇÃO 2 — AMANHÃ ══ -->
-  <section id="amanha">
+  <section id="amanha" class="prediction-only">
     <div class="sec-head">
       <span class="sec-kicker">Previsão</span>
       <h2>O que esperar do dia seguinte</h2>
@@ -440,20 +441,22 @@ const DATASETS = {
     label: "Energia",
     subtitle: "CMMaia · Energia · Deteção em tempo real",
     unit: "kWh",
+    hasPrediction: true,
     paths: {
-      alerts:      "../results/realtime/alerts/analise_{d}.csv",
-      predictions: "../results/realtime/predictions/previsao_{d}.csv",
-      quality:     "../results/realtime/analysis/qualidade_previsoes.csv",
+      alerts:      "../results/realtime_energia/alerts/analise_energia_{d}.csv",
+      predictions: "../results/realtime_energia/predictions/previsao_energia_{d}.csv",
+      quality:     "../results/realtime_energia/analysis/qualidade_previsoes_energia.csv",
     }
   },
   agua: {
     label: "Água",
     subtitle: "CMMaia · Água · Deteção em tempo real",
     unit: "m³",
+    hasPrediction: false,
     paths: {
-      alerts:      "../results/realtime_agua/alerts/analise_{d}.csv",
-      predictions: "../results/realtime_agua/predictions/previsao_{d}.csv",
-      quality:     "../results/realtime_agua/analysis/qualidade_previsoes.csv",
+      alerts:      "../results/realtime_agua/alerts/analise_agua_{d}.csv",
+      predictions: [],
+      quality:     [],
     }
   }
 };
@@ -489,10 +492,19 @@ function addDaysStr(dateStr, n){
 function activeDataset(){ return DATASETS[ACTIVE_DATASET]; }
 function unitLabel(){ return activeDataset().unit; }
 function valueWithUnit(n, dec=1){ return `${nice(n, dec)} ${unitLabel()}`; }
+function asTemplates(template){
+  if(!template) return [];
+  return Array.isArray(template) ? template : [template];
+}
+function formatTemplate(template, dateStr){
+  const t = asTemplates(template)[0];
+  return t ? t.replace("{d}", dateStr) : "sem ficheiro configurado";
+}
 function applyDatasetUI(){
   const cfg = activeDataset();
   $("#dashboardSubtitle").textContent = cfg.subtitle;
   document.title = `Monitorização de Consumo · ${cfg.label} · CMMaia`;
+  document.body.classList.toggle("sem-previsao", !cfg.hasPrediction);
   document.querySelectorAll(".dataset-btn").forEach(btn=>{
     const active = btn.dataset.dataset === ACTIVE_DATASET;
     btn.classList.toggle("active", active);
@@ -531,13 +543,15 @@ function splitLine(line){
 
 /* Procura o ficheiro mais recente recuando dia a dia */
 async function fetchByDate(template, dateStr){
-  const url = template.replace("{d}", dateStr);
-  try{
-    const r = await fetch(url, {cache:"no-store"});
-    if(r.ok){
-      return {date:dateStr, url, text:await r.text()};
-    }
-  }catch(e){}
+  for(const t of asTemplates(template)){
+    const url = t.replace("{d}", dateStr);
+    try{
+      const r = await fetch(url, {cache:"no-store"});
+      if(r.ok){
+        return {date:dateStr, url, text:await r.text()};
+      }
+    }catch(e){}
+  }
   return null;
 }
 
@@ -667,13 +681,14 @@ function renderSparkline(points, up){
 }
 
 async function fileExists(template, dateStr){
-  const url = template.replace("{d}", dateStr);
-  try{
-    const r = await fetch(url, {cache:"no-store"});
-    return r.ok;
-  }catch(e){
-    return false;
+  for(const t of asTemplates(template)){
+    const url = t.replace("{d}", dateStr);
+    try{
+      const r = await fetch(url, {cache:"no-store"});
+      if(r.ok) return true;
+    }catch(e){}
   }
+  return false;
 }
 
 let CALENDAR = null;
@@ -711,9 +726,11 @@ async function buildDayCalendar(){
     renderAmanha(null, null);
     const todayStr = fmtDate(today);
     $("#srcAnalise").innerHTML =
-      `Retrospetiva: <code>${PATHS.alerts.replace("{d}", todayStr)} (não encontrado)</code>`;
+      `Retrospetiva: <code>${formatTemplate(PATHS.alerts, todayStr)} (não encontrado)</code>`;
     $("#srcPrev").innerHTML =
-      `Previsão: <code>${PATHS.predictions.replace("{d}", addDaysStr(todayStr, 1))} (não encontrado)</code>`;
+      activeDataset().hasPrediction
+        ? `Previsão: <code>${formatTemplate(PATHS.predictions, addDaysStr(todayStr, 1))} (não encontrado)</code>`
+        : `Previsão: <code>não configurada para ${activeDataset().label}</code>`;
     return;
   }
 
@@ -739,10 +756,12 @@ async function buildDayCalendar(){
 }
 
 async function fetchFixed(url){
-  try{
-    const r = await fetch(url,{cache:"no-store"});
-    if(r.ok) return {url, text:await r.text()};
-  }catch(e){}
+  for(const u of asTemplates(url)){
+    try{
+      const r = await fetch(u,{cache:"no-store"});
+      if(r.ok) return {url:u, text:await r.text()};
+    }catch(e){}
+  }
   return null;
 }
 
@@ -928,7 +947,7 @@ function renderOntem(res, reincidencias = new Map(), sparkHistory = new Map()){
     $("#stripWrap").innerHTML = emptyCmd(
       "Sem dados de retrospetiva",
       "O programa ainda não gravou nenhuma análise, ou os ficheiros não estão acessíveis.",
-      "python detetar_anomalias.py --modo baze");
+      "python src/realtime_energia/detetar_anomalias.py --modo baze");
     $("#alertWrap").innerHTML = "";
     return;
   }
@@ -1049,7 +1068,7 @@ function renderAmanha(res, activeCpes){
     $("#topPredWrap").innerHTML = emptyCmd(
       "Sem previsão disponível",
       "A previsão do próximo dia é gerada pelo programa de deteção.",
-      "python detetar_anomalias.py --modo baze");
+      "python src/realtime_energia/detetar_anomalias.py --modo baze");
     $("#allPredWrap").innerHTML = "";
     return;
   }
@@ -1179,7 +1198,7 @@ function renderQualidade(res){
     $("#qualSub").textContent = "Ainda não há histórico de qualidade.";
     const msg = emptyCmd("Sem validações ainda",
       "A validação preenche-se sozinha: cada dia, o programa compara as previsões anteriores com o consumo real que entretanto chegou. Volta aqui depois de alguns dias.",
-      "python detetar_anomalias.py --modo baze");
+      "python src/realtime_energia/detetar_anomalias.py --modo baze");
     $("#errChartWrap").innerHTML = msg;
     $("#covChartWrap").innerHTML = "";
     $("#qualTableWrap").innerHTML = "";
@@ -1276,7 +1295,7 @@ async function loadAll(dateStr){
   renderOntem(aRes, reincidencias, sparkHistory);
 
   $("#srcAnalise").innerHTML =
-    `Retrospetiva: <code>${aRes ? aRes.url : PATHS.alerts.replace("{d}", selectedDate) + " (não encontrado)"}</code>`;
+    `Retrospetiva: <code>${aRes ? aRes.url : formatTemplate(PATHS.alerts, selectedDate) + " (não encontrado)"}</code>`;
 
   // CPEs ativos = os que aparecem na análise desse dia
   let activeCpes = null;
@@ -1284,13 +1303,18 @@ async function loadAll(dateStr){
     activeCpes = new Set(aRows.map(r=>r.CPE).filter(Boolean));
   }
 
-  // Previsão: carrega exatamente previsao_YYYY-MM-DD.csv
-  const predictionDate = addDaysStr(selectedDate, 1);
-  const pRes = await fetchByDate(PATHS.predictions, predictionDate);
-  renderAmanha(pRes, activeCpes);
+  if(activeDataset().hasPrediction){
+    const predictionDate = addDaysStr(selectedDate, 1);
+    const pRes = await fetchByDate(PATHS.predictions, predictionDate);
+    renderAmanha(pRes, activeCpes);
 
-  $("#srcPrev").innerHTML =
-    `Previsão: <code>${pRes ? pRes.url : PATHS.predictions.replace("{d}", predictionDate) + " (não encontrado)"}</code>`;
+    $("#srcPrev").innerHTML =
+      `Previsão: <code>${pRes ? pRes.url : formatTemplate(PATHS.predictions, predictionDate) + " (não encontrado)"}</code>`;
+  }else{
+    renderAmanha(null, activeCpes);
+    $("#srcPrev").innerHTML =
+      `Previsão: <code>não configurada para ${activeDataset().label}</code>`;
+  }
 }
 
 

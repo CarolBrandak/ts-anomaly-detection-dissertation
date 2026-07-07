@@ -49,6 +49,7 @@ MIN_HIST_ABSOLUTO    = 2     # mínimo absoluto para usar o CPE/hora
 Z_CAP                = 10.0  # limite de |z|
 STD_MIN_FRAC         = 0.10  # std mínimo = 10% do habitual
 STD_ABSOLUTO         = 0.3   # piso absoluto para evitar div/0
+TIPO_CONSUMO         = "energia"
 BASELINE_WINDOW_DAYS = 60    # janela móvel para captar sazonalidade
 MIN_HORAS_DIA_COMPLETO = 18  # evita escolher dias ainda quase vazios
 
@@ -107,6 +108,34 @@ class Previsao:
     n_dias:         int
     confianca:      str
     fonte_baseline: str
+
+
+def nome_ficheiro_analise(data_alvo: date) -> str:
+    return f"analise_{TIPO_CONSUMO}_{data_alvo}.csv"
+
+
+def nome_ficheiro_previsao(data_prever: date) -> str:
+    return f"previsao_{TIPO_CONSUMO}_{data_prever}.csv"
+
+
+def extrair_data_ficheiro_previsao(path: Path) -> Optional[date]:
+    prefixo_atual = f"previsao_{TIPO_CONSUMO}_"
+    prefixo_antigo = "previsao_"
+    stem = path.stem
+
+    if stem.startswith(prefixo_atual):
+        data_txt = stem.replace(prefixo_atual, "", 1)
+    elif stem.startswith(prefixo_antigo):
+        data_txt = stem.replace(prefixo_antigo, "", 1)
+        if not data_txt[:4].isdigit():
+            return None
+    else:
+        return None
+
+    try:
+        return date.fromisoformat(data_txt)
+    except ValueError:
+        return None
 
 
 # LOGGING
@@ -536,7 +565,7 @@ def exportar_previsoes(
 
     df = pd.DataFrame(rows)
     PREDICTIONS_DIR.mkdir(parents=True, exist_ok=True)
-    out = PREDICTIONS_DIR / f"previsao_{data_prever}.csv"
+    out = PREDICTIONS_DIR / nome_ficheiro_previsao(data_prever)
     df.to_csv(out, index=False)
     logger.info(f"  {Cor.DIM}Previsão guardada:{Cor.RESET} {out}")
     logger.info("")
@@ -558,8 +587,15 @@ def validar_previsoes(
         logger.info("")
         return None
 
-    ficheiros = sorted(PREDICTIONS_DIR.glob("previsao_*.csv"))
-    if not ficheiros:
+    ficheiros_por_data: dict[date, Path] = {}
+    for f in sorted(PREDICTIONS_DIR.glob("previsao_*.csv")):
+        data_prevista = extrair_data_ficheiro_previsao(f)
+        if data_prevista is None:
+            continue
+        if data_prevista not in ficheiros_por_data or f.stem.startswith(f"previsao_{TIPO_CONSUMO}_"):
+            ficheiros_por_data[data_prevista] = f
+
+    if not ficheiros_por_data:
         logger.info(f"  {Cor.DIM}Ainda não há previsões para validar.{Cor.RESET}")
         logger.info("")
         return None
@@ -567,11 +603,7 @@ def validar_previsoes(
     validacoes = []
     n_pendentes = 0
 
-    for f in ficheiros:
-        try:
-            data_prevista = date.fromisoformat(f.stem.replace("previsao_", ""))
-        except ValueError:
-            continue
+    for data_prevista, f in sorted(ficheiros_por_data.items()):
 
         reais = df[df["data"] == data_prevista]
         if reais.empty:
@@ -638,7 +670,7 @@ def validar_previsoes(
     df_val = pd.DataFrame(validacoes).sort_values("data").reset_index(drop=True)
 
     ANALYSIS_DIR.mkdir(parents=True, exist_ok=True)
-    out = ANALYSIS_DIR / "qualidade_previsoes.csv"
+    out = ANALYSIS_DIR / f"qualidade_previsoes_{TIPO_CONSUMO}.csv"
     df_val.to_csv(out, index=False)
 
     ult = df_val.iloc[-1]
@@ -743,7 +775,7 @@ def exportar_resultados(
 
     df = pd.DataFrame(rows)
     ALERTS_DIR.mkdir(parents=True, exist_ok=True)
-    out = ALERTS_DIR / f"analise_{data_alvo}.csv"
+    out = ALERTS_DIR / nome_ficheiro_analise(data_alvo)
     df.to_csv(out, index=False)
     logger.info(f"  {Cor.DIM}CSV:{Cor.RESET} {out}")
     return out

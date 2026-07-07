@@ -44,7 +44,7 @@ jobs:
 
       - name: Recolher dados do BaZe
         run: |
-          python src/realtime/detetar_anomalias.py --modo baze
+          python src/realtime_energia/detetar_anomalias.py --modo baze
 
       - name: Guardar results como artifact
         uses: actions/upload-artifact@v4
