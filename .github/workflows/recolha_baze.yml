@@ -4,8 +4,9 @@ on:
   workflow_dispatch:
 
   schedule:
-    - cron: "10 15-17 * * *"
-      timezone: "Europe/Lisbon"
+    - cron: "10 14 * * *"  # 15:10 em Portugal no horario de verao
+    - cron: "10 15 * * *"  # 16:10 em Portugal no horario de verao
+    - cron: "10 16 * * *"  # 17:10 em Portugal no horario de verao
 
 permissions:
   contents: write
