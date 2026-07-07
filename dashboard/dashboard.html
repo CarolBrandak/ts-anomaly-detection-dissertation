@@ -418,7 +418,7 @@
         os resultados em ficheiros. Esta página apenas lê esses ficheiros e mostra-os —
         não calcula nada. Para ver dados novos, carrega em <b>Atualizar</b>.</p>
         <p>Se quiseres forçar uma nova análise, corre o programa
-        <code>detetar_anomalias.py</code> e atualiza a página.</p>
+        <code>src/energia/realtime/detetar_anomalias.py</code> e atualiza a página.</p>
       </div>
       <div>
         <h5>Origem dos dados</h5>
@@ -443,9 +443,9 @@ const DATASETS = {
     unit: "kWh",
     hasPrediction: true,
     paths: {
-      alerts:      "../results/realtime_energia/alerts/analise_energia_{d}.csv",
-      predictions: "../results/realtime_energia/predictions/previsao_energia_{d}.csv",
-      quality:     "../results/realtime_energia/analysis/qualidade_previsoes_energia.csv",
+      alerts:      "../results/energia/realtime/alerts/analise_energia_{d}.csv",
+      predictions: "../results/energia/realtime/predictions/previsao_energia_{d}.csv",
+      quality:     "../results/energia/realtime/analysis/qualidade_previsoes_energia.csv",
     }
   },
   agua: {
@@ -454,7 +454,7 @@ const DATASETS = {
     unit: "m³",
     hasPrediction: false,
     paths: {
-      alerts:      "../results/realtime_agua/alerts/analise_agua_{d}.csv",
+      alerts:      "../results/agua/realtime/alerts/analise_agua_{d}.csv",
       predictions: [],
       quality:     [],
     }
@@ -947,7 +947,7 @@ function renderOntem(res, reincidencias = new Map(), sparkHistory = new Map()){
     $("#stripWrap").innerHTML = emptyCmd(
       "Sem dados de retrospetiva",
       "O programa ainda não gravou nenhuma análise, ou os ficheiros não estão acessíveis.",
-      "python src/realtime_energia/detetar_anomalias.py --modo baze");
+      "python src/energia/realtime/detetar_anomalias.py --modo baze");
     $("#alertWrap").innerHTML = "";
     return;
   }
@@ -1068,7 +1068,7 @@ function renderAmanha(res, activeCpes){
     $("#topPredWrap").innerHTML = emptyCmd(
       "Sem previsão disponível",
       "A previsão do próximo dia é gerada pelo programa de deteção.",
-      "python src/realtime_energia/detetar_anomalias.py --modo baze");
+      "python src/energia/realtime/detetar_anomalias.py --modo baze");
     $("#allPredWrap").innerHTML = "";
     return;
   }
@@ -1198,7 +1198,7 @@ function renderQualidade(res){
     $("#qualSub").textContent = "Ainda não há histórico de qualidade.";
     const msg = emptyCmd("Sem validações ainda",
       "A validação preenche-se sozinha: cada dia, o programa compara as previsões anteriores com o consumo real que entretanto chegou. Volta aqui depois de alguns dias.",
-      "python src/realtime_energia/detetar_anomalias.py --modo baze");
+      "python src/energia/realtime/detetar_anomalias.py --modo baze");
     $("#errChartWrap").innerHTML = msg;
     $("#covChartWrap").innerHTML = "";
     $("#qualTableWrap").innerHTML = "";

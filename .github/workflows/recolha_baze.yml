@@ -39,12 +39,12 @@ jobs:
 
       - name: Apagar cache antiga do BaZe
         run: |
-          mkdir -p results/baze_cache
-          rm -f results/baze_cache/*.json
+          mkdir -p results/energia/baze_cache
+          rm -f results/energia/baze_cache/*.json
 
       - name: Recolher dados do BaZe
         run: |
-          python src/realtime_energia/detetar_anomalias.py --modo baze
+          python src/energia/realtime/detetar_anomalias.py --modo baze
 
       - name: Guardar results como artifact
         uses: actions/upload-artifact@v4
@@ -52,7 +52,7 @@ jobs:
           name: results-baze-${{ github.run_number }}
           path: |
             results/
-            !results/baze_cache/**
+            !results/energia/baze_cache/**
           retention-days: 30
 
       - name: Guardar results no repositório
