@@ -192,6 +192,117 @@ html_template = r"""<!DOCTYPE html>
     line-height: 1.6;
   }
   #peak-info b { color: #E74C3C; }
+  #edit-cluster-trigger {
+    display: none;
+    border: 1px solid #DDE4EA;
+    background: white;
+    color: #2C3E50;
+    padding: 4px 9px;
+    border-radius: 999px;
+    cursor: pointer;
+    font-size: 0.72rem;
+    font-weight: 700;
+  }
+  #edit-cluster-trigger:hover { background: #F5F7FA; }
+  .modal-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    background: rgba(26, 37, 47, 0.38);
+    padding: 24px;
+  }
+  .modal-backdrop.open { display: flex; }
+  .modal {
+    width: min(440px, 100%);
+    background: white;
+    border-radius: 14px;
+    box-shadow: 0 24px 80px rgba(0,0,0,0.25);
+    overflow: hidden;
+  }
+  .modal-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 14px;
+    padding: 18px 20px 12px;
+    border-bottom: 1px solid #ECF0F1;
+  }
+  .modal-header h3 {
+    font-size: 1rem;
+    color: #1A252F;
+    margin-bottom: 4px;
+  }
+  .modal-header p {
+    font-size: 0.82rem;
+    color: #7F8C8D;
+    line-height: 1.4;
+  }
+  .modal-close {
+    border: 0;
+    background: #F5F7FA;
+    color: #7F8C8D;
+    border-radius: 8px;
+    width: 30px;
+    height: 30px;
+    cursor: pointer;
+    font-size: 1.1rem;
+    line-height: 1;
+  }
+  .modal-body {
+    padding: 18px 20px 6px;
+  }
+  .modal-body label {
+    display: block;
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #7F8C8D;
+    margin-bottom: 8px;
+  }
+  #cluster-select {
+    width: 100%;
+    border: 1px solid #DDE4EA;
+    border-radius: 9px;
+    padding: 9px 10px;
+    font-weight: 700;
+    color: #2C3E50;
+    background: white;
+  }
+  .edit-btn {
+    border: 1px solid #DDE4EA;
+    background: white;
+    color: #2C3E50;
+    padding: 7px 10px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.78rem;
+    font-weight: 700;
+  }
+  .edit-btn.primary {
+    border-color: #2C3E50;
+    background: #2C3E50;
+    color: white;
+  }
+  .edit-btn:hover { filter: brightness(0.97); }
+  .header-download { margin-left: auto; }
+  .modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    flex-wrap: wrap;
+    padding: 14px 20px 18px;
+  }
+  #edit-status {
+    margin-top: 8px;
+    font-size: 0.78rem;
+    color: #7F8C8D;
+    line-height: 1.5;
+  }
+  #edit-status b { color: #2C3E50; }
 </style>
 </head>
 <body>
@@ -208,6 +319,7 @@ html_template = r"""<!DOCTYPE html>
   <div class="panel" id="pca-panel">
     <div class="panel-header">
       <h2>Projeção PCA (K-Means)</h2>
+      <button type="button" class="edit-btn header-download" id="download-clusters-top">Descarregar CSV</button>
     </div>
     <div class="panel-body">
       <div id="scatter-plot" style="height:500px;"></div>
@@ -222,6 +334,7 @@ html_template = r"""<!DOCTYPE html>
     <div class="panel-header">
       <h2 id="profile-title">Perfil Horário</h2>
       <span class="badge" id="selected-badge"></span>
+      <button type="button" id="edit-cluster-trigger">Editar</button>
     </div>
     <div class="panel-body">
       <div id="profile-placeholder">
@@ -237,17 +350,187 @@ html_template = r"""<!DOCTYPE html>
     <div id="peak-info"></div>
   </div>
 </div>
+
+<div class="modal-backdrop" id="cluster-modal" aria-hidden="true">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="cluster-modal-title">
+    <div class="modal-header">
+      <div>
+        <h3 id="cluster-modal-title">Editar cluster</h3>
+        <p id="cluster-modal-subtitle">Escolhe o cluster correto para este CPE.</p>
+      </div>
+      <button type="button" class="modal-close" id="close-cluster-modal" aria-label="Fechar">x</button>
+    </div>
+    <div class="modal-body">
+      <label for="cluster-select">Novo cluster</label>
+      <select id="cluster-select"></select>
+      <div id="edit-status"></div>
+    </div>
+    <div class="modal-actions">
+      <button type="button" class="edit-btn" id="reset-cluster">Repor original</button>
+      <button type="button" class="edit-btn primary" id="apply-cluster">Aplicar</button>
+    </div>
+  </div>
+</div>
  
 <script>
 // Dados embutidos
 const DATA          = DATA_JSON;
-const CLUSTER_MEANS = CLUSTER_MEANS_JSON;
+const INITIAL_CLUSTER_MEANS = CLUSTER_MEANS_JSON;
 const COLOR_MAP     = COLOR_MAP_JSON;
 const HORA_LABELS   = HORA_LABELS_JSON;
+const STORAGE_KEY   = "energia_interactive_pca_cluster_edits_v1";
+const ORIGINAL_CLUSTERS = Object.fromEntries(DATA.map(d => [d.cpe, d.cluster]));
+
+let SELECTED_CPE = null;
+let CLUSTER_EDITS = {};
+let CLUSTER_MEANS = {};
+
+function availableClusterIds() {
+  return Object.keys(COLOR_MAP).sort((a, b) => Number(a) - Number(b));
+}
+
+function sortedClusterIds() {
+  return [...new Set(DATA.map(d => d.cluster))].sort((a, b) => Number(a) - Number(b));
+}
+
+function computeClusterMeans() {
+  const means = {};
+  const nHoras = DATA[0]?.perfil.length || HORA_LABELS.length;
+
+  availableClusterIds().forEach(cid => {
+    const pts = DATA.filter(d => d.cluster === cid);
+
+    if (!pts.length) {
+      means[cid] = INITIAL_CLUSTER_MEANS[cid] || Array(nHoras).fill(0);
+      return;
+    }
+
+    means[cid] = Array.from({length: nHoras}, (_, i) =>
+      pts.reduce((acc, d) => acc + d.perfil[i], 0) / pts.length
+    );
+  });
+
+  return means;
+}
+
+function loadSavedEdits() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
+    const validClusters = new Set(availableClusterIds());
+
+    Object.entries(saved).forEach(([cpe, cluster]) => {
+      const row = DATA.find(d => d.cpe === cpe);
+      if (!row || !validClusters.has(String(cluster))) return;
+
+      row.cluster = String(cluster);
+      if (row.cluster !== ORIGINAL_CLUSTERS[cpe]) {
+        CLUSTER_EDITS[cpe] = row.cluster;
+      }
+    });
+  } catch (_) {
+    CLUSTER_EDITS = {};
+  }
+}
+
+function saveEdits() {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(CLUSTER_EDITS));
+  } catch (_) {}
+}
+
+function csvEscape(value) {
+  const s = String(value ?? "");
+  return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+}
+
+function downloadClustersCsv() {
+  const lines = ["CPE,cluster"];
+  DATA
+    .slice()
+    .sort((a, b) => a.cpe.localeCompare(b.cpe))
+    .forEach(d => lines.push(`${csvEscape(d.cpe)},${csvEscape(d.cluster)}`));
+
+  const blob = new Blob([lines.join("\n") + "\n"], {type: "text/csv;charset=utf-8"});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "clusters_cpe_editado.csv";
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
+function updateEditStatus(message) {
+  const status = document.getElementById("edit-status");
+  const n = Object.keys(CLUSTER_EDITS).length;
+  const suffix = n
+    ? `<br><b>${n}</b> ${n === 1 ? "alteração guardada" : "alterações guardadas"} neste browser.`
+    : "<br>Sem alterações guardadas.";
+  status.innerHTML = `${message || ""}${suffix}`;
+}
+
+function updateClusterEditor(cpe) {
+  const row = DATA.find(d => d.cpe === cpe);
+  if (!row) return;
+
+  const select = document.getElementById("cluster-select");
+  const trigger = document.getElementById("edit-cluster-trigger");
+  trigger.style.display = "inline-flex";
+
+  select.innerHTML = availableClusterIds().map(cid =>
+    `<option value="${cid}" ${cid === row.cluster ? "selected" : ""}>Cluster ${cid}</option>`
+  ).join("");
+
+  document.getElementById("cluster-modal-subtitle").textContent =
+    `${cpe} está atualmente no Cluster ${row.cluster}.`;
+
+  const original = ORIGINAL_CLUSTERS[cpe];
+  const message = row.cluster === original
+    ? `Cluster atual: <b>${row.cluster}</b>.`
+    : `Cluster atual: <b>${row.cluster}</b>. Original: <b>${original}</b>.`;
+  updateEditStatus(message);
+}
+
+function openClusterModal() {
+  if (!SELECTED_CPE) return;
+  updateClusterEditor(SELECTED_CPE);
+  const modal = document.getElementById("cluster-modal");
+  modal.classList.add("open");
+  modal.setAttribute("aria-hidden", "false");
+  document.getElementById("cluster-select").focus();
+}
+
+function closeClusterModal() {
+  const modal = document.getElementById("cluster-modal");
+  modal.classList.remove("open");
+  modal.setAttribute("aria-hidden", "true");
+}
+
+function setCluster(cpe, newCluster) {
+  const row = DATA.find(d => d.cpe === cpe);
+  if (!row) return;
+
+  row.cluster = String(newCluster);
+  if (row.cluster === ORIGINAL_CLUSTERS[cpe]) {
+    delete CLUSTER_EDITS[cpe];
+  } else {
+    CLUSTER_EDITS[cpe] = row.cluster;
+  }
+
+  saveEdits();
+  CLUSTER_MEANS = computeClusterMeans();
+  buildScatter();
+  showProfile(row.cpe, row.cluster, row.perfil);
+  closeClusterModal();
+}
+
+loadSavedEdits();
+CLUSTER_MEANS = computeClusterMeans();
  
 // Construir scatter PCA
 function buildScatter() {
-  const clusterIds = [...new Set(DATA.map(d => d.cluster))].sort();
+  const clusterIds = sortedClusterIds();
   const traces = clusterIds.map(cid => {
     const pts = DATA.filter(d => d.cluster === cid);
     return {
@@ -295,7 +578,7 @@ function buildScatter() {
  
   // Estatísticas por cluster na barra inferior
   const statsBar = document.getElementById("stats-bar");
-  statsBar.innerHTML = clusterIds.map(cid => {
+  statsBar.innerHTML = availableClusterIds().map(cid => {
     const n = DATA.filter(d => d.cluster === cid).length;
     return `<div class="stat">
       <span class="stat-label" style="color:${COLOR_MAP[cid]}">Cluster ${cid}</span>
@@ -337,6 +620,7 @@ function buildScatter() {
  
 // Mostrar perfil horário
 function showProfile(cpe, cluster, perfil) {
+  SELECTED_CPE = cpe;
   document.getElementById("profile-placeholder").style.display = "none";
   document.getElementById("profile-chart").style.display = "block";
   document.getElementById("info-bar").style.display     = "flex";
@@ -349,6 +633,7 @@ function showProfile(cpe, cluster, perfil) {
   badge.textContent      = `Cluster ${cluster}`;
  
   document.getElementById("profile-title").textContent = cpe;
+  updateClusterEditor(cpe);
  
   const clusterMean = CLUSTER_MEANS[cluster];
   const desvios     = perfil.map((v, i) => v - clusterMean[i]);
@@ -475,6 +760,27 @@ function hexToRgba(hex, alpha) {
   const b = parseInt(hex.slice(5,7), 16);
   return `rgba(${r},${g},${b},${alpha})`;
 }
+
+document.getElementById("edit-cluster-trigger").addEventListener("click", openClusterModal);
+document.getElementById("close-cluster-modal").addEventListener("click", closeClusterModal);
+document.getElementById("cluster-modal").addEventListener("click", evt => {
+  if (evt.target.id === "cluster-modal") closeClusterModal();
+});
+document.addEventListener("keydown", evt => {
+  if (evt.key === "Escape") closeClusterModal();
+});
+
+document.getElementById("apply-cluster").addEventListener("click", () => {
+  if (!SELECTED_CPE) return;
+  setCluster(SELECTED_CPE, document.getElementById("cluster-select").value);
+});
+
+document.getElementById("reset-cluster").addEventListener("click", () => {
+  if (!SELECTED_CPE) return;
+  setCluster(SELECTED_CPE, ORIGINAL_CLUSTERS[SELECTED_CPE]);
+});
+
+document.getElementById("download-clusters-top").addEventListener("click", downloadClustersCsv);
  
 // Init
 buildScatter();
@@ -498,8 +804,10 @@ with open(INTERACTIVE_PCA_HTML, "w", encoding="utf-8") as f:
     f.write(html_out)
  
 print(f"\n    Ficheiro gerado: {INTERACTIVE_PCA_HTML.resolve()}")
-print(f"      Abre no browser (Chrome/Firefox) — funciona offline, sem servidor.")
+print("      Abre no browser (Chrome/Firefox) - funciona offline, sem servidor.")
 print(f"\n    Funcionalidades:")
-print(f"      • Hover sobre qualquer ponto → nome do CPE")
-print(f"      • Click → perfil horário individual vs média do cluster")
-print(f"      • Toolbar Plotly → zoom, pan, reset, download PNG")
+print("      - Hover sobre qualquer ponto -> nome do CPE")
+print("      - Click -> perfil horario individual vs media do cluster")
+print("      - Corrigir cluster -> altera o cluster no HTML e exporta CSV")
+print("      - Toolbar Plotly -> zoom, pan, reset, download PNG")
+
