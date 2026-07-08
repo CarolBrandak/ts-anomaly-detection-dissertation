@@ -51,12 +51,12 @@
     <div class="label">Índice</div>
     <nav>
       <a class="main" href="#ontem">Retrospetiva</a>
-      <a class="sub" href="#posicoes-cpe">Onde cada CPE caiu</a>
-      <a class="sub" href="#desvios">Desvios detetados</a>
+      <a class="sub" id="navDistribuicao" href="#posicoes-cpe">Distribuição dos desvios</a>
+      <a class="sub" id="navDesvios" href="#desvios">Desvios detetados</a>
       <a class="main prediction-only" href="#amanha">Previsão</a>
       <a class="sub prediction-only" href="#perfil-horario">Perfil horário previsto</a>
       <a class="sub prediction-only" href="#maiores-consumos">Maiores consumos previstos</a>
-      <a class="sub prediction-only" href="#tabela-previsao">Todos os CPEs ativos</a>
+      <a class="sub prediction-only" href="#tabela-previsao">Previsões por CPE</a>
     </nav>
   </aside>
 
@@ -66,12 +66,12 @@
   <section id="ontem">
     <div class="sec-head">
       <span class="sec-kicker">Retrospetiva</span>
-      <h2>Análise do dia</h2>
+      <h2 id="analysisTitle">Análise do dia</h2>
     </div>
     <p class="sec-sub" id="ontemSub">A carregar a análise do último dia disponível…</p>
 
     <div class="stats" id="statCards">
-      <div class="card tot"><span class="tag"></span><div class="lab"><span class="pill t"></span>CPEs analisados</div><div class="num"><span class="skel" style="display:block;width:60px;height:30px"></span></div></div>
+      <div class="card tot"><span class="tag"></span><div class="lab"><span class="pill t"></span><span id="analysedLabel">CPEs analisados</span></div><div class="num"><span class="skel" style="display:block;width:60px;height:30px"></span></div></div>
       <div class="card normal"><span class="tag"></span><div class="lab"><span class="pill n"></span>Normais</div><div class="num"><span class="skel" style="display:block;width:60px;height:30px"></span></div></div>
       <div class="card high"><span class="tag"></span><div class="lab"><span class="pill h"></span>Desvios (alta conf.)</div><div class="num"><span class="skel" style="display:block;width:50px;height:30px"></span></div></div>
       <div class="card lowc"><span class="tag"></span><div class="lab"><span class="pill l"></span>Desvios (baixa conf.)</div><div class="num"><span class="skel" style="display:block;width:40px;height:30px"></span></div></div>
@@ -79,8 +79,8 @@
 
     <div class="panel" id="posicoes-cpe">
       <div class="panel-head">
-        <h3>Onde cada CPE caiu</h3>
-        <span class="hint">cada ponto é um CPE · a faixa verde é o intervalo considerado normal</span>
+        <h3 id="stripTitle">Distribuição dos desvios por CPE</h3>
+        <span class="hint" id="stripHint">cada ponto é um CPE · a faixa verde é o intervalo considerado normal</span>
       </div>
       <div class="panel-body" id="stripWrap"><div class="spinner"></div></div>
     </div>
@@ -88,7 +88,7 @@
     <div class="panel" id="desvios">
       <div class="panel-head">
         <h3 id="alertTitle">Desvios detetados</h3>
-        <span class="hint">cartões ordenados pelo tamanho do desvio · scroll dentro do painel</span>
+        <span class="hint" id="alertHint">cartões ordenados pelo tamanho do desvio · scroll dentro do painel</span>
       </div>
       <div class="panel-body" id="alertWrap"><div class="spinner"></div></div>
     </div>
@@ -98,7 +98,7 @@
   <section id="amanha" class="prediction-only">
     <div class="sec-head">
       <span class="sec-kicker">Previsão</span>
-      <h2>O que esperar do dia seguinte</h2>
+      <h2>Previsão para o dia seguinte</h2>
     </div>
     <p class="sec-sub" id="amanhaSub">A carregar a previsão…</p>
 
@@ -126,7 +126,7 @@
 
     <div class="panel" id="tabela-previsao">
       <div class="panel-head">
-        <h3>Previsão de todos os CPEs ativos</h3>
+        <h3>Previsões horárias por CPE</h3>
         <span class="hint" id="predTableHint">os CPEs que reportaram ontem · clica nos títulos para ordenar</span>
       </div>
       <div class="panel-body" id="allPredWrap"><div class="spinner"></div></div>
@@ -140,7 +140,7 @@
         <p>O programa de deteção corre automaticamente todos os dias (às 15h) e grava
         os resultados em ficheiros. Esta página apenas lê esses ficheiros e mostra-os —
         não calcula nada. Para ver dados novos, carrega em <b>Atualizar</b>.</p>
-        <p>Se quiseres forçar uma nova análise, corre o programa
+        <p id="runHint">Se quiseres forçar uma nova análise de energia, corre o programa
         <code>src/energia/realtime/detetar_anomalias.py</code> e atualiza a página.</p>
       </div>
       <div>

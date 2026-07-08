@@ -6,7 +6,7 @@
     --accent:#C2410C; --accent-2:#EA580C; --accent-soft:#FEF1E7;
     --normal:#15803D; --normal-soft:#E7F4EC;
     --high:#DC2626;   --high-soft:#FBEAEA;
-    --low:#2563EB;    --low-soft:#E8EFFD;
+    --low:#2563EB;    --low-soft:#E8EFFD;  --low-1:#0246d7;
     --pred:#7C3AED;   --pred-soft:#F0E9FC;
     --lowconf:#8A94A1;
     --font-display:'Fraunces',Georgia,'Times New Roman',serif;
@@ -59,8 +59,10 @@
   .dataset-btn{font-family:var(--font-body);font-size:12.5px;font-weight:800;
     border:0;background:transparent;color:var(--ink-3);padding:7px 12px;border-radius:8px;
     cursor:pointer;text-transform:uppercase;letter-spacing:.06em;transition:.18s}
-  .dataset-btn:hover{background:var(--panel);color:var(--ink)}
+  .dataset-btn[data-dataset="energia"]:hover{background:var(--panel);color:var(--accent)}
+  .dataset-btn[data-dataset="agua"]:hover{background:var(--panel);color:var(--low-1)}
   .dataset-btn.active{background:var(--ink);color:#fff;box-shadow:var(--shadow)}
+  .dataset-btn[data-dataset="energia"].active{background:var(--accent-2)}
   .dataset-btn[data-dataset="agua"].active{background:var(--low)}
   .brand{display:flex;align-items:center;gap:14px;min-width:0}
   .mark{width:42px;height:42px;flex:0 0 42px;border-radius:11px;

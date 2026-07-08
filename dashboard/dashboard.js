@@ -7,6 +7,30 @@ const DATASETS = {
     subtitle: "CMMaia · Energia · Deteção em tempo real",
     unit: "kWh",
     hasPrediction: true,
+    entitySingular: "CPE",
+    entityPlural: "CPEs",
+    pointLabel: "pontos CPE/hora",
+    runCommand: "python src/energia/realtime/detetar_anomalias.py --modo baze",
+    titles: {
+      analysisTitle: "Análise do dia",
+      analysedLabel: "CPEs analisados",
+      stripTitle: "Distribuição dos desvios por CPE",
+      stripHint: "cada ponto é um CPE · a faixa verde é o intervalo considerado normal",
+      alertTitle: "Desvios detetados",
+      alertHint: "cartões ordenados pelo tamanho do desvio · scroll dentro do painel",
+      navDistribuicao: "Distribuição dos desvios",
+      navDesvios: "Desvios detetados",
+    },
+    footerHint: `Se quiseres forçar uma nova análise de energia, corre o programa
+        <code>src/energia/realtime/detetar_anomalias.py</code> e atualiza a página.`,
+    messages: {
+      missingAnalysisTitle: "Sem dados de energia",
+      missingAnalysisText: "O programa ainda não gravou nenhuma análise de energia para este dia, ou os ficheiros não estão acessíveis.",
+      missingPredictionTitle: "Sem previsão disponível",
+      missingPredictionText: "A previsão de energia do próximo dia é gerada pelo programa de deteção.",
+      missingQualityTitle: "Sem validações ainda",
+      missingQualityText: "A validação preenche-se sozinha: cada dia, o programa compara as previsões anteriores com o consumo real que entretanto chegou. Volta aqui depois de alguns dias.",
+    },
     paths: {
       alerts:      "../results/energia/realtime/alerts/analise_energia_{d}.csv",
       predictions: "../results/energia/realtime/predictions/previsao_energia_{d}.csv",
@@ -18,6 +42,30 @@ const DATASETS = {
     subtitle: "CMMaia · Água · Deteção em tempo real",
     unit: "m³",
     hasPrediction: false,
+    entitySingular: "contador",
+    entityPlural: "contadores",
+    pointLabel: "pontos contador/hora",
+    runCommand: "python src/agua/data/agua_loader.py",
+    titles: {
+      analysisTitle: "Análise da água",
+      analysedLabel: "Contadores analisados",
+      stripTitle: "Distribuição dos desvios por contador",
+      stripHint: "cada ponto é um contador de água · a faixa verde é o intervalo considerado normal",
+      alertTitle: "Desvios de água detetados",
+      alertHint: "cartões de água ordenados pelo tamanho do desvio · scroll dentro do painel",
+      navDistribuicao: "Distribuição da água",
+      navDesvios: "Desvios de água",
+    },
+    footerHint: `Para aparecerem dados de água, primeiro é preciso recolher os dados e gravar os ficheiros em
+        <code>results/agua/realtime/alerts</code>. Lembrete: <code>python src/agua/data/agua_loader.py</code>.`,
+    messages: {
+      missingAnalysisTitle: "Sem dados de água",
+      missingAnalysisText: "Ainda não existem ficheiros de análise de água para este dia. Primeiro é preciso recolher os dados de água.",
+      missingPredictionTitle: "Previsão de água não configurada",
+      missingPredictionText: "A dashboard está preparada para alternar para Água, mas a previsão de água ainda não foi ativada.",
+      missingQualityTitle: "Sem validações de água",
+      missingQualityText: "Ainda não existem validações de água para apresentar.",
+    },
     paths: {
       alerts:      "../results/agua/realtime/alerts/analise_agua_{d}.csv",
       predictions: [],
@@ -68,6 +116,12 @@ function formatTemplate(template, dateStr){
 function applyDatasetUI(){
   const cfg = activeDataset();
   $("#dashboardSubtitle").textContent = cfg.subtitle;
+  const runHint = $("#runHint");
+  if(runHint) runHint.innerHTML = cfg.footerHint;
+  Object.entries(cfg.titles).forEach(([id, text])=>{
+    const el = $(`#${id}`);
+    if(el) el.textContent = text;
+  });
   document.title = `Monitorização de Consumo · ${cfg.label} · CMMaia`;
   document.body.classList.toggle("sem-previsao", !cfg.hasPrediction);
   document.querySelectorAll(".dataset-btn").forEach(btn=>{
@@ -480,7 +534,7 @@ function renderHourlyProfile(container, rows){
 
 function emptyMsg(t){ return `<div class="empty"><p>${t}</p></div>`; }
 function emptyCmd(title,sub,cmd){
-  return `<div class="empty"><h4>${title}</h4><p>${sub}</p><code>${cmd}</code></div>`;
+  return `<div class="empty"><h4>${title}</h4><p>${sub}</p>${cmd ? `<code>${cmd}</code>` : ""}</div>`;
 }
 
 /* ════════ Renderização das secções ════════ */
@@ -504,16 +558,18 @@ function updateDayStatus(totalAlertas, alta, baixa){
 }
 
 function renderOntem(res, reincidencias = new Map(), sparkHistory = new Map()){
+  const cfg = activeDataset();
   if(!res){
     ALERT_STATE = { rows:[], reincidencias:new Map(), sparkHistory:new Map() };
     setDayStatus("nodata", "sem dados");
-    $("#ontemSub").textContent = "Não foi encontrada nenhuma análise para este dia.";
+    $("#ontemSub").textContent = `Não foi encontrada nenhuma análise de ${cfg.label.toLowerCase()} para este dia.`;
     $("#statCards").style.display="none";
     $("#stripWrap").innerHTML = emptyCmd(
-      "Sem dados de retrospetiva",
-      "O programa ainda não gravou nenhuma análise, ou os ficheiros não estão acessíveis.",
-      "python src/energia/realtime/detetar_anomalias.py --modo baze");
-    $("#alertWrap").innerHTML = "";
+      cfg.messages.missingAnalysisTitle,
+      cfg.messages.missingAnalysisText,
+      cfg.runCommand);
+    $("#alertTitle").textContent = cfg.titles.alertTitle;
+    $("#alertWrap").innerHTML = emptyMsg(`Sem desvios de ${cfg.label.toLowerCase()} para mostrar.`);
     return;
   }
   const rows = parseCSV(res.text).map(r=>({
@@ -532,14 +588,17 @@ function renderOntem(res, reincidencias = new Map(), sparkHistory = new Map()){
 
   updateDayStatus(desvios.length, alta.length, baixa.length);
 
+  const entitySingular = cfg.entitySingular;
+  const entityPlural = cfg.entityPlural;
+
   $("#ontemSub").innerHTML =
     `Dia analisado: <b>${prettyDate(res.date)}</b> (${tipoLabel(rows[0]?.tipo)}). ` +
-    `Cada CPE é comparado com o seu próprio histórico — um desvio significa que consumiu ` +
-    `de forma invulgar <b>para ele próprio</b>, não em relação aos outros.`;
+    `Cada ${entitySingular} é comparado com o seu próprio histórico — um desvio significa que consumiu ` +
+    `de forma invulgar <b>para ele próprio</b>, não em relação aos outros ${entityPlural}.`;
 
   // cards
   const cards = $("#statCards"); cards.style.display="";
-  setCard(cards,0,cpesAnalisados,`${rows.length} pontos CPE/hora`);
+  setCard(cards,0,cpesAnalisados,`${rows.length} ${cfg.pointLabel}`);
   setCard(cards,1,normal, rows.length? (Math.round(normal/rows.length*100)+"% dos pontos"):"");
   setCard(cards,2,alta.length,"pontos a verificar");
   setCard(cards,3,baixa.length,"pontos com pouco histórico");
@@ -548,11 +607,11 @@ function renderOntem(res, reincidencias = new Map(), sparkHistory = new Map()){
 
   // alertas ordenados
   const ord = [...alta, ...baixa].sort((a,b)=>Math.abs(b.z)-Math.abs(a.z));
-  $("#alertTitle").textContent = desvios.length ? `Desvios detetados (${desvios.length})` : "Desvios detetados";
+  $("#alertTitle").textContent = desvios.length ? `${cfg.titles.alertTitle} (${desvios.length})` : cfg.titles.alertTitle;
   const wrap = $("#alertWrap");
   if(!ord.length){
     wrap.innerHTML = `<div class="allclear"><div class="big">✓ Tudo normal</div>
-      <div class="small">Nenhum CPE consumiu de forma invulgar ontem.</div></div>`;
+      <div class="small">Nenhum ${entitySingular} consumiu de forma invulgar ontem.</div></div>`;
     return;
   }
   ALERT_STATE = {
@@ -627,13 +686,14 @@ let PRED_STATE = { rows:[], date:null, sortKey:"prev", sortDir:-1, query:"" };
 function renderAmanha(res, activeCpes){
   const cards = $("#predCards");
   if(!res){
+    const cfg = activeDataset();
     $("#amanhaSub").textContent = "Ainda não há previsão gravada.";
     cards.style.display="none";
     $("#hourlyPredWrap").innerHTML = "";
     $("#topPredWrap").innerHTML = emptyCmd(
-      "Sem previsão disponível",
-      "A previsão do próximo dia é gerada pelo programa de deteção.",
-      "python src/energia/realtime/detetar_anomalias.py --modo baze");
+      cfg.messages.missingPredictionTitle,
+      cfg.messages.missingPredictionText,
+      cfg.runCommand);
     $("#allPredWrap").innerHTML = "";
     return;
   }
@@ -760,10 +820,12 @@ function drawPredTable(){
 
 function renderQualidade(res){
   if(!res){
+    const cfg = activeDataset();
     $("#qualSub").textContent = "Ainda não há histórico de qualidade.";
-    const msg = emptyCmd("Sem validações ainda",
-      "A validação preenche-se sozinha: cada dia, o programa compara as previsões anteriores com o consumo real que entretanto chegou. Volta aqui depois de alguns dias.",
-      "python src/energia/realtime/detetar_anomalias.py --modo baze");
+    const msg = emptyCmd(
+      cfg.messages.missingQualityTitle,
+      cfg.messages.missingQualityText,
+      cfg.runCommand);
     $("#errChartWrap").innerHTML = msg;
     $("#covChartWrap").innerHTML = "";
     $("#qualTableWrap").innerHTML = "";
