@@ -45,7 +45,7 @@ const DATASETS = {
     entitySingular: "contador",
     entityPlural: "contadores",
     pointLabel: "pontos contador/hora",
-    runCommand: "python src/agua/data/agua_loader.py",
+    runCommand: "python src/agua/realtime/detetar_anomalias.py --modo baze",
     titles: {
       analysisTitle: "Análise da água",
       analysedLabel: "Contadores analisados",
@@ -56,8 +56,8 @@ const DATASETS = {
       navDistribuicao: "Distribuição da água",
       navDesvios: "Desvios de água",
     },
-    footerHint: `Para aparecerem dados de água, primeiro é preciso recolher os dados e gravar os ficheiros em
-        <code>results/agua/realtime/alerts</code>. Lembrete: <code>python src/agua/data/agua_loader.py</code>.`,
+    footerHint: `Para aparecerem dados de água, primeiro é preciso recolher e analisar os dados dos contadores.
+        Lembrete: <code>python src/agua/realtime/detetar_anomalias.py --modo baze</code>.`,
     messages: {
       missingAnalysisTitle: "Sem dados de água",
       missingAnalysisText: "Ainda não existem ficheiros de análise de água para este dia. Primeiro é preciso recolher os dados de água.",

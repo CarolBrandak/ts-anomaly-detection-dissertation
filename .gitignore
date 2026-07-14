@@ -5,3 +5,4 @@ __pycache__/
 .ipynb_checkpoints/
 data_processed/
 results/energia/baze_cache/
+results/agua/baze_cache/
