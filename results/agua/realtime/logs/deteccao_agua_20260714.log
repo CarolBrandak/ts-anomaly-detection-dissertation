@@ -11,3 +11,14 @@ Interrompido pelo utilizador. Nenhum ficheiro parcial foi guardado.
 2026-07-14 12:35:23 [INFO] CSV guardado: C:\Users\anaca\OneDrive\Ambiente de Trabalho\Tese\ts-anomaly-detection-dissertation\results\agua\realtime\alerts\analise_agua_2026-05-18.csv
 2026-07-14 12:35:23 [INFO] 
 2026-07-14 12:35:23 [INFO] Concluido em 4187.8s. Ficheiros gerados: 1
+2026-07-14 13:10:52 [INFO] 
+2026-07-14 13:10:52 [INFO] ANALISE DE AGUA - 2026-05-18 (dia util)
+2026-07-14 13:10:52 [INFO] Contadores com dados: 400
+2026-07-14 13:10:52 [INFO] Pontos contador/hora: 8807
+2026-07-14 13:11:09 [INFO] Normais: 8612
+2026-07-14 13:11:09 [INFO] Desvios alta confianca: 195
+2026-07-14 13:11:09 [INFO] Desvios baixa confianca: 0
+2026-07-14 13:11:09 [INFO] Sem historico suficiente: 0
+2026-07-14 13:11:09 [INFO] CSV guardado: C:\Users\anaca\OneDrive\Ambiente de Trabalho\Tese\ts-anomaly-detection-dissertation\results\agua\realtime\alerts\analise_agua_2026-05-18.csv
+2026-07-14 13:11:09 [INFO] 
+2026-07-14 13:11:09 [INFO] Concluido em 1388.6s. Ficheiros gerados: 1

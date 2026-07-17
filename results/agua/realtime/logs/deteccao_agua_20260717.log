@@ -1,0 +1,33 @@
+2026-07-17 12:33:46 [INFO] 
+2026-07-17 12:33:46 [INFO] ANALISE DE AGUA - 2026-05-18 (dia util)
+2026-07-17 12:33:46 [INFO] Contadores com dados: 400
+2026-07-17 12:33:46 [INFO] Pontos contador/hora: 8807
+2026-07-17 12:34:18 [INFO] Normais: 8612
+2026-07-17 12:34:18 [INFO] Desvios alta confianca: 195
+2026-07-17 12:34:18 [INFO] Desvios baixa confianca: 0
+2026-07-17 12:34:18 [INFO] Sem historico suficiente: 0
+2026-07-17 12:34:18 [INFO] CSV guardado: C:\Users\anaca\OneDrive\Ambiente de Trabalho\Tese\ts-anomaly-detection-dissertation\results\agua\realtime\alerts\analise_agua_2026-05-18.csv
+2026-07-17 12:34:18 [INFO] 
+2026-07-17 12:34:18 [INFO] Concluido em 1411.6s. Ficheiros gerados: 1
+2026-07-17 13:03:07 [INFO] 
+2026-07-17 13:03:07 [INFO] ANALISE DE AGUA - 2026-05-18 (dia util)
+2026-07-17 13:03:07 [INFO] Contadores com dados: 400
+2026-07-17 13:03:07 [INFO] Pontos contador/hora: 8807
+2026-07-17 13:03:34 [INFO] Normais: 8612
+2026-07-17 13:03:34 [INFO] Desvios alta confianca: 195
+2026-07-17 13:03:34 [INFO] Desvios baixa confianca: 0
+2026-07-17 13:03:34 [INFO] Sem historico suficiente: 0
+2026-07-17 13:03:35 [INFO] CSV guardado: C:\Users\anaca\OneDrive\Ambiente de Trabalho\Tese\ts-anomaly-detection-dissertation\results\agua\realtime\alerts\analise_agua_2026-05-18.csv
+2026-07-17 13:03:35 [INFO] 
+2026-07-17 13:03:35 [INFO] Concluido em 1402.4s. Ficheiros gerados: 1
+2026-07-17 13:29:46 [INFO] 
+2026-07-17 13:29:46 [INFO] ANALISE DE AGUA - 2026-05-18 (dia util)
+2026-07-17 13:29:46 [INFO] Contadores com dados: 400
+2026-07-17 13:29:46 [INFO] Pontos contador/hora: 8807
+2026-07-17 13:30:04 [INFO] Normais: 8612
+2026-07-17 13:30:04 [INFO] Desvios alta confianca: 195
+2026-07-17 13:30:04 [INFO] Desvios baixa confianca: 0
+2026-07-17 13:30:04 [INFO] Sem historico suficiente: 0
+2026-07-17 13:30:04 [INFO] CSV guardado: C:\Users\anaca\OneDrive\Ambiente de Trabalho\Tese\ts-anomaly-detection-dissertation\results\agua\realtime\alerts\analise_agua_2026-05-18.csv
+2026-07-17 13:30:04 [INFO] 
+2026-07-17 13:30:04 [INFO] Concluido em 1412.0s. Ficheiros gerados: 1

@@ -32,7 +32,7 @@ from config.paths import BAZE_AGUA_CACHE_DIR
 BASE_URL = "https://baze.cm-maia.pt/BaZe/api/x4rt.php"
 CATALOG_URL = "https://baze.cm-maia.pt/BaZe/fsmas.php"
 JANELA_DIAS_ENDPOINT = 10
-DEFAULT_MAX_WORKERS = 8
+DEFAULT_MAX_WORKERS = 16
 
 FALLBACK_CONTADORES = [
     "I13JA287987",
