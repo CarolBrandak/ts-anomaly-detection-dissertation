@@ -33,8 +33,7 @@ const DATASETS = {
     },
     paths: {
       alerts:      "../results/energia/realtime/alerts/analise_energia_{d}.csv",
-      predictions: "../results/energia/realtime/predictions/previsao_energia_{d}.csv",
-      quality:     "../results/energia/realtime/analysis/qualidade_previsoes_energia.csv",
+      predictions: "../results/energia/realtime/predictions/previsao_energia_{d}.csv"
     }
   },
   agua: {
@@ -67,15 +66,13 @@ const DATASETS = {
       missingQualityText: "Ainda não existem validações de água para apresentar.",
     },
     paths: {
-      alerts:      "../results/agua/realtime/alerts/analise_agua_{d}.csv",
-      predictions: [],
-      quality:     [],
+      alerts:      "../results/agua/realtime/alerts/analise_agua_{d}.csv"
     }
   }
 };
 let ACTIVE_DATASET = "energia";
 let PATHS = DATASETS[ACTIVE_DATASET].paths;
-const CALENDAR_START_DATE = "2026-05-19";
+const CALENDAR_START_DATE = "2026-05-01"; // data a partir da qual há análises disponíveis
 const REINCIDENCIA_DIAS = 6; // dias anteriores a verificar para reincidência
 const SPARKLINE_DIAS = 6; // 6 dias anteriores + dia escolhido = 7 dias
 
@@ -642,6 +639,7 @@ function renderAlertCard(r, reincidencias, sparkHistory){
   const up = r.direcao==="acima";
   const pct = (r.real-r.hab)/Math.max(Math.abs(r.hab),0.001)*100;
   const cl = (r.cluster && r.cluster!=="" && r.cluster.toLowerCase()!=="nan") ? `Cluster ${r.cluster}` : "sem cluster";
+  const clusterChip = ACTIVE_DATASET === "energia" ? `<span class="chip">${cl}</span>` : "";
   const hourChip = r.hora===null ? "" : `<span class="chip">${String(r.hora).padStart(2,"0")}h</span>`;
   const lowc = r.confianca==="baixa" ? `<span class="chip" style="background:var(--accent-soft);color:var(--accent)">baixa confiança</span>` : "";
   const rec = reincidencias.get(r.cpe);
@@ -655,7 +653,7 @@ function renderAlertCard(r, reincidencias, sparkHistory){
     <div class="body">
       <div class="r1">
         <span class="cpe">${r.cpe}</span>
-        <span class="chip">${cl}</span>${hourChip}${lowc}${repeatChip}
+        ${clusterChip}${hourChip}${lowc}${repeatChip}
       </div>
       <div class="desc">${up?"Consumiu <b>mais</b>":"Consumiu <b>menos</b>"} do que o habitual ${r.hora===null?"":"às " + String(r.hora).padStart(2,"0") + "h"}.</div>
       <div class="nums">

@@ -1,0 +1,2 @@
+CPE,hora,cluster,tipo_dia,consumo_real,consumo_habitual,std,z_score,z_real,veredicto,direcao,confianca,n_dias_tipo,fonte_baseline,threshold
+I21LA148189,0,,dia_util,0.0,0.0002,0.01,-0.02,-0.02,normal,normal,alta,18,historico dia_util,2.0
