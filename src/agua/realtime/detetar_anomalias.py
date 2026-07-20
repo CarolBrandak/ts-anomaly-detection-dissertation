@@ -49,6 +49,12 @@ THRESHOLD_POR_TIPO = {
 }
 
 
+class Cor:
+    RESET, NEGRITO, DIM = "\033[0m", "\033[1m", "\033[2m"
+    VERMELHO, VERDE, AMARELO = "\033[91m", "\033[92m", "\033[93m"
+    AZUL, CIANO, CINZENTO = "\033[94m", "\033[96m", "\033[90m"
+
+
 @dataclass
 class Parametros:
     datas_alvo: list[date]
@@ -58,6 +64,7 @@ class Parametros:
     limite_contadores: Optional[int]
     usar_cache: bool
     max_workers: int
+    so_alta_confianca: bool
     quiet: bool
 
 
@@ -113,6 +120,9 @@ class ClassificadorDia:
         if pd.Timestamp(d).dayofweek >= 5:
             return "fim_semana"
         return "dia_util"
+
+    def nome_feriado(self, d) -> Optional[str]:
+        return self.feriados.get(d)
 
 
 def _date_range(inicio: date, fim: date) -> list[date]:
@@ -276,14 +286,133 @@ def exportar_resultados(
     return out
 
 
+def imprimir_cabecalho(
+    data_alvo: date,
+    modo_dados: str,
+    tipo_dia: str,
+    nome_feriado: Optional[str],
+    n_contadores: int,
+    n_pontos: int,
+    logger: logging.Logger,
+):
+    tipo_str = tipo_dia.replace("_", " ")
+    if nome_feriado:
+        tipo_str += f" ({nome_feriado})"
+    threshold = THRESHOLD_POR_TIPO[tipo_dia]
+
+    largura = 70
+    logger.info("")
+    logger.info(f"{Cor.NEGRITO}{'=' * largura}{Cor.RESET}")
+    logger.info(f"{Cor.NEGRITO}  DETECAO DE ANOMALIAS AGUA - {data_alvo}{Cor.RESET}")
+    logger.info(f"{Cor.NEGRITO}{'=' * largura}{Cor.RESET}")
+    logger.info(f"  {Cor.DIM}Tipo de dia:{Cor.RESET}        {tipo_str}")
+    logger.info(f"  {Cor.DIM}Fonte:{Cor.RESET}              {modo_dados.upper()}")
+    logger.info(f"  {Cor.DIM}Contadores c/ dados:{Cor.RESET} {n_contadores}")
+    logger.info(f"  {Cor.DIM}Pontos contador/hora:{Cor.RESET} {n_pontos}")
+    logger.info(f"  {Cor.DIM}Threshold:{Cor.RESET}          |z| > {threshold} "
+                f"{Cor.DIM}(adaptativo a este tipo de dia){Cor.RESET}")
+    logger.info("")
+
+
+def imprimir_resumo(
+    n_normal: int,
+    n_desvio_alta: int,
+    n_desvio_baixa: int,
+    n_sem_hist: int,
+    elapsed: float,
+    logger: logging.Logger,
+):
+    total = n_normal + n_desvio_alta + n_desvio_baixa
+
+    logger.info(f"{Cor.NEGRITO}--- Resumo -------------------------------------{Cor.RESET}")
+    logger.info(f"  {Cor.VERDE}Normal{Cor.RESET}                  "
+                f"{n_normal:4d} {Cor.DIM}({n_normal / max(total, 1) * 100:5.1f}%){Cor.RESET}")
+    logger.info(f"  {Cor.VERMELHO}Desvio (alta confianca){Cor.RESET} "
+                f"{n_desvio_alta:4d} {Cor.DIM}({n_desvio_alta / max(total, 1) * 100:5.1f}%){Cor.RESET}")
+    logger.info(f"  {Cor.AMARELO}Desvio (baixa confianca){Cor.RESET} "
+                f"{n_desvio_baixa:3d} {Cor.DIM}({n_desvio_baixa / max(total, 1) * 100:5.1f}%){Cor.RESET}")
+    if n_sem_hist > 0:
+        logger.info(f"  {Cor.CINZENTO}Sem historico suficiente{Cor.RESET} "
+                    f"{n_sem_hist:3d}")
+    logger.info(f"  {Cor.DIM}Tempo: {elapsed:.1f}s{Cor.RESET}")
+    logger.info("")
+
+
+def _imprimir_bloco_desvio(r: ResultadoContador, logger: logging.Logger):
+    if r.direcao == "acima":
+        icone, cor = "🔴", Cor.VERMELHO
+        desc = f"consumiu MAIS que o habitual às {r.hora:02d}h"
+    else:
+        icone, cor = "🔵", Cor.AZUL
+        desc = f"consumiu MENOS que o habitual às {r.hora:02d}h"
+
+    pct = ((r.consumo_real - r.consumo_esperado)
+           / max(abs(r.consumo_esperado), 0.001) * 100)
+    z_str = f"{r.z_score:+.2f}"
+    if abs(r.z_real) > Z_CAP:
+        z_str += " (cap)"
+
+    logger.info(f"  {icone} {cor}{Cor.NEGRITO}{r.cpe}{Cor.RESET}")
+    logger.info(f"     {desc}")
+    logger.info(
+        f"     {Cor.DIM}Real:{Cor.RESET} {r.consumo_real:.3f} m3   "
+        f"{Cor.DIM}Habitual:{Cor.RESET} {r.consumo_esperado:.3f} "
+        f"± {r.std_esperado:.3f} m3   "
+        f"{Cor.DIM}z:{Cor.RESET} {z_str}   "
+        f"{Cor.DIM}desvio:{Cor.RESET} {pct:+.0f}%   "
+        f"{Cor.DIM}({r.n_dias_tipo} obs. {r.tipo_dia}){Cor.RESET}"
+    )
+    logger.info("")
+
+
+def imprimir_alertas(
+    alertas: list[ResultadoContador],
+    logger: logging.Logger,
+    so_alta_confianca: bool,
+):
+    alta = sorted(
+        [a for a in alertas if a.confianca == "alta"],
+        key=lambda r: -abs(r.z_score),
+    )
+    baixa = sorted(
+        [a for a in alertas if a.confianca == "baixa"],
+        key=lambda r: -abs(r.z_score),
+    )
+
+    if not alta and not baixa:
+        logger.info(f"{Cor.VERDE}{Cor.NEGRITO}  Tudo normal - sem desvios neste dia.{Cor.RESET}")
+        logger.info("")
+        return
+
+    if alta:
+        logger.info(f"{Cor.NEGRITO}--- Desvios de ALTA confianca ({len(alta)}) -------------------{Cor.RESET}")
+        logger.info("")
+        for r in alta:
+            _imprimir_bloco_desvio(r, logger)
+
+    if baixa and not so_alta_confianca:
+        logger.info(f"{Cor.NEGRITO}{Cor.AMARELO}--- Desvios de BAIXA confianca ({len(baixa)}) ------------------{Cor.RESET}")
+        logger.info(f"  {Cor.DIM}(poucos dados historicos - verificar manualmente){Cor.RESET}")
+        logger.info("")
+        for r in baixa:
+            _imprimir_bloco_desvio(r, logger)
+    elif baixa and so_alta_confianca:
+        logger.info(f"  {Cor.DIM}(+ {len(baixa)} desvios de baixa confianca omitidos por --so-alta-confianca){Cor.RESET}")
+        logger.info("")
+
+
 def analisar_dia(
     df: pd.DataFrame,
     data_alvo: date,
     classificador: ClassificadorDia,
     dias_historico: int,
+    modo_dados: str,
+    so_alta_confianca: bool,
     logger: logging.Logger,
 ) -> Optional[Path]:
+    inicio = time.time()
     tipo_alvo = classificador(data_alvo)
+    nome_feriado = classificador.nome_feriado(data_alvo)
     df_alvo = df[df["data"] == data_alvo]
     if df_alvo.empty:
         logger.warning(f"Sem dados de agua para {data_alvo}.")
@@ -294,10 +423,15 @@ def analisar_dia(
     resultados: list[ResultadoContador] = []
     sem_hist = 0
 
-    logger.info("")
-    logger.info(f"ANALISE DE AGUA - {data_alvo} ({tipo_alvo.replace('_', ' ')})")
-    logger.info(f"Contadores com dados: {df_alvo['CPE'].nunique()}")
-    logger.info(f"Pontos contador/hora: {len(pontos)}")
+    imprimir_cabecalho(
+        data_alvo=data_alvo,
+        modo_dados=modo_dados,
+        tipo_dia=tipo_alvo,
+        nome_feriado=nome_feriado,
+        n_contadores=df_alvo["CPE"].nunique(),
+        n_pontos=len(pontos),
+        logger=logger,
+    )
 
     for ponto in pontos.itertuples(index=False):
         df_cpe = grupos.get(ponto.CPE)
@@ -323,10 +457,15 @@ def analisar_dia(
     baixa = [r for r in desvios if r.confianca == "baixa"]
     normais = len(resultados) - len(desvios)
 
-    logger.info(f"Normais: {normais}")
-    logger.info(f"Desvios alta confianca: {len(alta)}")
-    logger.info(f"Desvios baixa confianca: {len(baixa)}")
-    logger.info(f"Sem historico suficiente: {sem_hist}")
+    imprimir_resumo(
+        n_normal=normais,
+        n_desvio_alta=len(alta),
+        n_desvio_baixa=len(baixa),
+        n_sem_hist=sem_hist,
+        elapsed=time.time() - inicio,
+        logger=logger,
+    )
+    imprimir_alertas(desvios, logger, so_alta_confianca)
 
     return exportar_resultados(resultados, data_alvo, logger)
 
@@ -345,6 +484,8 @@ def parse_args() -> Parametros:
     parser.add_argument("--max-workers", type=int, default=DEFAULT_MAX_WORKERS,
                         help="Numero de pedidos ao endpoint em simultaneo")
     parser.add_argument("--sem-cache", action="store_true", help="Ignorar cache local")
+    parser.add_argument("--so-alta-confianca", action="store_true",
+                        help="Mostrar no log apenas desvios de alta confianca")
     parser.add_argument("--quiet", action="store_true", help="Mostrar apenas avisos/erros")
     args = parser.parse_args()
 
@@ -378,6 +519,7 @@ def parse_args() -> Parametros:
         limite_contadores=args.limite_contadores,
         usar_cache=not args.sem_cache,
         max_workers=args.max_workers,
+        so_alta_confianca=args.so_alta_confianca,
         quiet=args.quiet,
     )
 
@@ -429,6 +571,8 @@ def main() -> int:
                 data_alvo=data_alvo,
                 classificador=classificador,
                 dias_historico=params.dias_historico,
+                modo_dados=params.modo_dados,
+                so_alta_confianca=params.so_alta_confianca,
                 logger=logger,
             )
             if out:

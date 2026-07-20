@@ -840,6 +840,8 @@ def main() -> int:
         os.system("")  # ativa cores ANSI no Windows 10+
 
     try:
+        ficheiros_gerados = 0
+
         # 1. Dados
         df = carregar_dados(params.modo_dados, logger, usar_cache=params.usar_cache)
         if params.data_alvo is None:
@@ -911,7 +913,9 @@ def main() -> int:
         imprimir_alertas(alertas, logger, params.so_alta_confianca)
 
         if resultados:
-            exportar_resultados(resultados, params.data_alvo, logger)
+            out_analise = exportar_resultados(resultados, params.data_alvo, logger)
+            if out_analise:
+                ficheiros_gerados += 1
             logger.info("")
 
         if params.gerar_plots and alertas:
@@ -922,6 +926,7 @@ def main() -> int:
                             f"gráficos...{Cor.RESET}")
                 for r in alvo_plots:
                     gerar_grafico_alerta(r, grupos[r.cpe])
+                    ficheiros_gerados += 1
                 logger.info(f"  {len(alvo_plots)} gráficos em {PLOTS_DIR}")
                 logger.info("")
 
@@ -941,11 +946,17 @@ def main() -> int:
 
             imprimir_resumo_predicao(previsoes, data_prever, tipo_prever,
                                      fer_prever, logger)
-            exportar_previsoes(previsoes, data_prever, logger)
+            out_previsao = exportar_previsoes(previsoes, data_prever, logger)
+            if out_previsao:
+                ficheiros_gerados += 1
 
         # 6. PARTE 3 — Validação
         if not params.sem_validacao:
             validar_previsoes(df, logger)
+
+        logger.info("")
+        logger.info(f"Concluido em {time.time() - inicio:.1f}s. "
+                    f"Ficheiros gerados: {ficheiros_gerados}")
 
 ##        if n_desvio_alta > 0:
 ##            return 1

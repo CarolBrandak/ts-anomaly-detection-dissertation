@@ -199,3 +199,88 @@
 2026-07-20 12:56:44 [INFO] CSV guardado: C:\Users\anaca\OneDrive\Ambiente de Trabalho\Tese\ts-anomaly-detection-dissertation\results\agua\realtime\alerts\analise_agua_2026-05-22.csv
 2026-07-20 12:56:44 [INFO] 
 2026-07-20 12:56:44 [INFO] Concluido em 919.3s. Ficheiros gerados: 22
+2026-07-20 16:09:25 [ERROR] Sem dados de agua para analisar.
+2026-07-20 16:12:01 [WARNING] 
+Interrompido pelo utilizador. Nenhum ficheiro parcial foi guardado.
+2026-07-20 16:22:38 [INFO] 
+2026-07-20 16:22:38 [INFO] [1m======================================================================[0m
+2026-07-20 16:22:38 [INFO] [1m  DETECAO DE ANOMALIAS AGUA - 2026-05-19[0m
+2026-07-20 16:22:38 [INFO] [1m======================================================================[0m
+2026-07-20 16:22:38 [INFO]   [2mTipo de dia:[0m        dia util
+2026-07-20 16:22:38 [INFO]   [2mFonte:[0m              BAZE
+2026-07-20 16:22:38 [INFO]   [2mContadores c/ dados:[0m 360
+2026-07-20 16:22:38 [INFO]   [2mPontos contador/hora:[0m 381
+2026-07-20 16:22:38 [INFO]   [2mThreshold:[0m          |z| > 3.5 [2m(adaptativo a este tipo de dia)[0m
+2026-07-20 16:22:38 [INFO] 
+2026-07-20 16:22:41 [INFO] [1m--- Resumo -------------------------------------[0m
+2026-07-20 16:22:41 [INFO]   [92mNormal[0m                   376 [2m( 98.7%)[0m
+2026-07-20 16:22:41 [INFO]   [91mDesvio (alta confianca)[0m    5 [2m(  1.3%)[0m
+2026-07-20 16:22:41 [INFO]   [93mDesvio (baixa confianca)[0m   0 [2m(  0.0%)[0m
+2026-07-20 16:22:41 [INFO]   [2mTempo: 2.6s[0m
+2026-07-20 16:22:41 [INFO] 
+2026-07-20 16:22:41 [INFO] [1m--- Desvios de ALTA confianca (5) -------------------[0m
+2026-07-20 16:22:41 [INFO] 
+2026-07-20 16:22:41 [INFO]   [91m[1m[ACIMA] C23FE003152I[0m
+2026-07-20 16:22:41 [INFO]      consumiu MAIS que o habitual as 00h
+2026-07-20 16:22:41 [INFO]      [2mReal:[0m 0.139 m3   [2mHabitual:[0m -0.000 +/- 0.010 m3   [2mz:[0m +10.00 (cap)   [2mdesvio:[0m +13910%   [2m(20 obs. dia_util)[0m
+2026-07-20 16:22:41 [INFO] 
+2026-07-20 16:22:41 [INFO]   [91m[1m[ACIMA] D11JE109235D[0m
+2026-07-20 16:22:41 [INFO]      consumiu MAIS que o habitual as 00h
+2026-07-20 16:22:41 [INFO]      [2mReal:[0m 0.921 m3   [2mHabitual:[0m 0.114 +/- 0.064 m3   [2mz:[0m +10.00 (cap)   [2mdesvio:[0m +706%   [2m(14 obs. dia_util)[0m
+2026-07-20 16:22:41 [INFO] 
+2026-07-20 16:22:41 [INFO]   [91m[1m[ACIMA] D19BX000041[0m
+2026-07-20 16:22:41 [INFO]      consumiu MAIS que o habitual as 00h
+2026-07-20 16:22:41 [INFO]      [2mReal:[0m 0.515 m3   [2mHabitual:[0m 0.013 +/- 0.049 m3   [2mz:[0m +10.00 (cap)   [2mdesvio:[0m +3955%   [2m(15 obs. dia_util)[0m
+2026-07-20 16:22:41 [INFO] 
+2026-07-20 16:22:41 [INFO]   [91m[1m[ACIMA] I21JC029333H[0m
+2026-07-20 16:22:41 [INFO]      consumiu MAIS que o habitual as 00h
+2026-07-20 16:22:41 [INFO]      [2mReal:[0m 0.093 m3   [2mHabitual:[0m 0.018 +/- 0.010 m3   [2mz:[0m +7.47   [2mdesvio:[0m +408%   [2m(9 obs. dia_util)[0m
+2026-07-20 16:22:41 [INFO] 
+2026-07-20 16:22:41 [INFO]   [91m[1m[ACIMA] D17BA019938[0m
+2026-07-20 16:22:41 [INFO]      consumiu MAIS que o habitual as 00h
+2026-07-20 16:22:41 [INFO]      [2mReal:[0m 0.053 m3   [2mHabitual:[0m 0.004 +/- 0.010 m3   [2mz:[0m +4.92   [2mdesvio:[0m +1295%   [2m(15 obs. dia_util)[0m
+2026-07-20 16:22:41 [INFO] 
+2026-07-20 16:22:41 [INFO] CSV guardado: C:\Users\anaca\OneDrive\Ambiente de Trabalho\Tese\ts-anomaly-detection-dissertation\results\agua\realtime\alerts\analise_agua_2026-05-19.csv
+2026-07-20 16:22:41 [INFO] 
+2026-07-20 16:22:41 [INFO] Concluido em 593.2s. Ficheiros gerados: 1
+2026-07-20 16:33:00 [INFO] 
+2026-07-20 16:33:00 [INFO] [1m======================================================================[0m
+2026-07-20 16:33:00 [INFO] [1m  DETECAO DE ANOMALIAS AGUA - 2026-05-19[0m
+2026-07-20 16:33:00 [INFO] [1m======================================================================[0m
+2026-07-20 16:33:00 [INFO]   [2mTipo de dia:[0m        dia util
+2026-07-20 16:33:00 [INFO]   [2mFonte:[0m              BAZE
+2026-07-20 16:33:00 [INFO]   [2mContadores c/ dados:[0m 360
+2026-07-20 16:33:00 [INFO]   [2mPontos contador/hora:[0m 381
+2026-07-20 16:33:00 [INFO]   [2mThreshold:[0m          |z| > 3.5 [2m(adaptativo a este tipo de dia)[0m
+2026-07-20 16:33:00 [INFO] 
+2026-07-20 16:33:02 [INFO] [1m--- Resumo -------------------------------------[0m
+2026-07-20 16:33:02 [INFO]   [92mNormal[0m                   376 [2m( 98.7%)[0m
+2026-07-20 16:33:02 [INFO]   [91mDesvio (alta confianca)[0m    5 [2m(  1.3%)[0m
+2026-07-20 16:33:02 [INFO]   [93mDesvio (baixa confianca)[0m   0 [2m(  0.0%)[0m
+2026-07-20 16:33:02 [INFO]   [2mTempo: 1.5s[0m
+2026-07-20 16:33:02 [INFO] 
+2026-07-20 16:33:02 [INFO] [1m--- Desvios de ALTA confianca (5) -------------------[0m
+2026-07-20 16:33:02 [INFO] 
+2026-07-20 16:33:02 [INFO]   🔴 [91m[1mC23FE003152I[0m
+2026-07-20 16:33:02 [INFO]      consumiu MAIS que o habitual às 00h
+2026-07-20 16:33:02 [INFO]      [2mReal:[0m 0.139 m3   [2mHabitual:[0m -0.000 ± 0.010 m3   [2mz:[0m +10.00 (cap)   [2mdesvio:[0m +13910%   [2m(20 obs. dia_util)[0m
+2026-07-20 16:33:02 [INFO] 
+2026-07-20 16:33:02 [INFO]   🔴 [91m[1mD11JE109235D[0m
+2026-07-20 16:33:02 [INFO]      consumiu MAIS que o habitual às 00h
+2026-07-20 16:33:02 [INFO]      [2mReal:[0m 0.921 m3   [2mHabitual:[0m 0.114 ± 0.064 m3   [2mz:[0m +10.00 (cap)   [2mdesvio:[0m +706%   [2m(14 obs. dia_util)[0m
+2026-07-20 16:33:02 [INFO] 
+2026-07-20 16:33:02 [INFO]   🔴 [91m[1mD19BX000041[0m
+2026-07-20 16:33:02 [INFO]      consumiu MAIS que o habitual às 00h
+2026-07-20 16:33:02 [INFO]      [2mReal:[0m 0.515 m3   [2mHabitual:[0m 0.013 ± 0.049 m3   [2mz:[0m +10.00 (cap)   [2mdesvio:[0m +3955%   [2m(15 obs. dia_util)[0m
+2026-07-20 16:33:02 [INFO] 
+2026-07-20 16:33:02 [INFO]   🔴 [91m[1mI21JC029333H[0m
+2026-07-20 16:33:02 [INFO]      consumiu MAIS que o habitual às 00h
+2026-07-20 16:33:02 [INFO]      [2mReal:[0m 0.093 m3   [2mHabitual:[0m 0.018 ± 0.010 m3   [2mz:[0m +7.47   [2mdesvio:[0m +408%   [2m(9 obs. dia_util)[0m
+2026-07-20 16:33:02 [INFO] 
+2026-07-20 16:33:02 [INFO]   🔴 [91m[1mD17BA019938[0m
+2026-07-20 16:33:02 [INFO]      consumiu MAIS que o habitual às 00h
+2026-07-20 16:33:02 [INFO]      [2mReal:[0m 0.053 m3   [2mHabitual:[0m 0.004 ± 0.010 m3   [2mz:[0m +4.92   [2mdesvio:[0m +1295%   [2m(15 obs. dia_util)[0m
+2026-07-20 16:33:02 [INFO] 
+2026-07-20 16:33:02 [INFO] CSV guardado: C:\Users\anaca\OneDrive\Ambiente de Trabalho\Tese\ts-anomaly-detection-dissertation\results\agua\realtime\alerts\analise_agua_2026-05-19.csv
+2026-07-20 16:33:02 [INFO] 
+2026-07-20 16:33:02 [INFO] Concluido em 352.9s. Ficheiros gerados: 1
