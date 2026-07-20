@@ -3053,3 +3053,288 @@
 2026-07-20 16:35:57 [INFO]   [2mThreshold:[0m    |z| > 3.0 [2m(adaptativo a este tipo de dia)[0m
 2026-07-20 16:35:57 [INFO] 
 2026-07-20 16:35:57 [ERROR] [91mSem dados para 2026-07-13.[0m
+2026-07-20 16:00:05 [INFO] [96m→ A pedir dados ao BaZe (276 CPEs)...[0m
+2026-07-20 16:12:43 [INFO] 
+2026-07-20 16:12:43 [INFO] [1m══════════════════════════════════════════════════════════════════════[0m
+2026-07-20 16:12:43 [INFO] [1m  DETEÇÃO DE ANOMALIAS — 2026-07-19[0m
+2026-07-20 16:12:43 [INFO] [1m══════════════════════════════════════════════════════════════════════[0m
+2026-07-20 16:12:43 [INFO]   [2mTipo de dia:[0m  fim semana
+2026-07-20 16:12:43 [INFO]   [2mFonte:[0m        BAZE
+2026-07-20 16:12:43 [INFO]   [2mCPEs c/ dados:[0m 56
+2026-07-20 16:12:43 [INFO]   [2mThreshold:[0m    |z| > 3.5 [2m(adaptativo a este tipo de dia)[0m
+2026-07-20 16:12:43 [INFO] 
+2026-07-20 16:12:43 [INFO] [96m→ A analisar 56 CPEs / 1344 pontos horários (retrospetiva)...[0m
+2026-07-20 16:12:44 [INFO] [1m─── Resumo ─────────────────────────────────────[0m
+2026-07-20 16:12:44 [INFO]   [92m● Normal[0m                1283 [2m( 95.5%)[0m
+2026-07-20 16:12:44 [INFO]   [91m● Desvio (alta confiança)[0m    0 [2m(  0.0%)[0m
+2026-07-20 16:12:44 [INFO]   [93m● Desvio (baixa confiança)[0m  61 [2m(  4.5%)[0m
+2026-07-20 16:12:44 [INFO]   [2mTempo: 758.8s[0m
+2026-07-20 16:12:44 [INFO] 
+2026-07-20 16:12:44 [INFO] [1m[93m─── Desvios de BAIXA confiança (61) ──────────────[0m
+2026-07-20 16:12:44 [INFO]   [2m(poucos dados históricos — verificar manualmente)[0m
+2026-07-20 16:12:44 [INFO] 
+2026-07-20 16:12:44 [INFO]   🔴 [91m[1mPT0002000068856872QG[0m  [2m[Cluster 1][0m
+2026-07-20 16:12:44 [INFO]      consumiu MAIS que o habitual às 05h
+2026-07-20 16:12:44 [INFO]      [2mReal:[0m 3.0 kWh   [2mHabitual:[0m 0.0 ± 0.3 kWh   [2mz:[0m +10.00   [2mdesvio:[0m +300000%   [2m(2 obs. fim_semana)[0m
+2026-07-20 16:12:44 [INFO] 
+2026-07-20 16:12:44 [INFO]   🔴 [91m[1mPT0002000068859325FL[0m  [2m[Cluster 1][0m
+2026-07-20 16:12:44 [INFO]      consumiu MAIS que o habitual às 23h
+2026-07-20 16:12:44 [INFO]      [2mReal:[0m 360.0 kWh   [2mHabitual:[0m 117.3 ± 18.9 kWh   [2mz:[0m +10.00⁺   [2mdesvio:[0m +207%   [2m(3 obs. fim_semana)[0m
+2026-07-20 16:12:44 [INFO] 
+2026-07-20 16:12:44 [INFO]   🔴 [91m[1mPT0002000073720434JD[0m  [2m[sem cluster][0m
+2026-07-20 16:12:44 [INFO]      consumiu MAIS que o habitual às 00h
+2026-07-20 16:12:44 [INFO]      [2mReal:[0m 87.0 kWh   [2mHabitual:[0m 22.5 ± 2.2 kWh   [2mz:[0m +10.00⁺   [2mdesvio:[0m +287%   [2m(2 obs. fim_semana)[0m
+2026-07-20 16:12:44 [INFO] 
+2026-07-20 16:12:44 [INFO]   🔴 [91m[1mPT0002000073720434JD[0m  [2m[sem cluster][0m
+2026-07-20 16:12:44 [INFO]      consumiu MAIS que o habitual às 01h
+2026-07-20 16:12:44 [INFO]      [2mReal:[0m 86.0 kWh   [2mHabitual:[0m 22.5 ± 2.2 kWh   [2mz:[0m +10.00⁺   [2mdesvio:[0m +282%   [2m(2 obs. fim_semana)[0m
+2026-07-20 16:12:44 [INFO] 
+2026-07-20 16:12:44 [INFO]   🔴 [91m[1mPT0002000073720434JD[0m  [2m[sem cluster][0m
+2026-07-20 16:12:44 [INFO]      consumiu MAIS que o habitual às 02h
+2026-07-20 16:12:44 [INFO]      [2mReal:[0m 85.0 kWh   [2mHabitual:[0m 22.0 ± 2.2 kWh   [2mz:[0m +10.00⁺   [2mdesvio:[0m +286%   [2m(2 obs. fim_semana)[0m
+2026-07-20 16:12:44 [INFO] 
+2026-07-20 16:12:44 [INFO]   🔴 [91m[1mPT0002000073720434JD[0m  [2m[sem cluster][0m
+2026-07-20 16:12:44 [INFO]      consumiu MAIS que o habitual às 03h
+2026-07-20 16:12:44 [INFO]      [2mReal:[0m 86.0 kWh   [2mHabitual:[0m 23.0 ± 2.3 kWh   [2mz:[0m +10.00⁺   [2mdesvio:[0m +274%   [2m(2 obs. fim_semana)[0m
+2026-07-20 16:12:44 [INFO] 
+2026-07-20 16:12:44 [INFO]   🔴 [91m[1mPT0002000073720434JD[0m  [2m[sem cluster][0m
+2026-07-20 16:12:44 [INFO]      consumiu MAIS que o habitual às 04h
+2026-07-20 16:12:44 [INFO]      [2mReal:[0m 84.0 kWh   [2mHabitual:[0m 21.5 ± 2.1 kWh   [2mz:[0m +10.00⁺   [2mdesvio:[0m +291%   [2m(2 obs. fim_semana)[0m
+2026-07-20 16:12:44 [INFO] 
+2026-07-20 16:12:44 [INFO]   🔴 [91m[1mPT0002000073720434JD[0m  [2m[sem cluster][0m
+2026-07-20 16:12:44 [INFO]      consumiu MAIS que o habitual às 05h
+2026-07-20 16:12:44 [INFO]      [2mReal:[0m 87.0 kWh   [2mHabitual:[0m 23.0 ± 2.3 kWh   [2mz:[0m +10.00⁺   [2mdesvio:[0m +278%   [2m(2 obs. fim_semana)[0m
+2026-07-20 16:12:44 [INFO] 
+2026-07-20 16:12:44 [INFO]   🔴 [91m[1mPT0002000073720434JD[0m  [2m[sem cluster][0m
+2026-07-20 16:12:44 [INFO]      consumiu MAIS que o habitual às 06h
+2026-07-20 16:12:44 [INFO]      [2mReal:[0m 86.0 kWh   [2mHabitual:[0m 21.5 ± 2.1 kWh   [2mz:[0m +10.00⁺   [2mdesvio:[0m +300%   [2m(2 obs. fim_semana)[0m
+2026-07-20 16:12:44 [INFO] 
+2026-07-20 16:12:44 [INFO]   🔴 [91m[1mPT0002000073720434JD[0m  [2m[sem cluster][0m
+2026-07-20 16:12:44 [INFO]      consumiu MAIS que o habitual às 07h
+2026-07-20 16:12:44 [INFO]      [2mReal:[0m 82.0 kWh   [2mHabitual:[0m 21.5 ± 2.1 kWh   [2mz:[0m +10.00⁺   [2mdesvio:[0m +281%   [2m(2 obs. fim_semana)[0m
+2026-07-20 16:12:44 [INFO] 
+2026-07-20 16:12:44 [INFO]   🔴 [91m[1mPT0002000073720434JD[0m  [2m[sem cluster][0m
+2026-07-20 16:12:44 [INFO]      consumiu MAIS que o habitual às 08h
+2026-07-20 16:12:44 [INFO]      [2mReal:[0m 82.0 kWh   [2mHabitual:[0m 20.0 ± 4.2 kWh   [2mz:[0m +10.00⁺   [2mdesvio:[0m +310%   [2m(2 obs. fim_semana)[0m
+2026-07-20 16:12:44 [INFO] 
+2026-07-20 16:12:44 [INFO]   🔴 [91m[1mPT0002000073720434JD[0m  [2m[sem cluster][0m
+2026-07-20 16:12:44 [INFO]      consumiu MAIS que o habitual às 09h
+2026-07-20 16:12:44 [INFO]      [2mReal:[0m 85.0 kWh   [2mHabitual:[0m 19.0 ± 1.9 kWh   [2mz:[0m +10.00⁺   [2mdesvio:[0m +347%   [2m(2 obs. fim_semana)[0m
+2026-07-20 16:12:44 [INFO] 
+2026-07-20 16:12:44 [INFO]   🔴 [91m[1mPT0002000073720434JD[0m  [2m[sem cluster][0m
+2026-07-20 16:12:44 [INFO]      consumiu MAIS que o habitual às 11h
+2026-07-20 16:12:44 [INFO]      [2mReal:[0m 86.0 kWh   [2mHabitual:[0m 21.5 ± 2.1 kWh   [2mz:[0m +10.00⁺   [2mdesvio:[0m +300%   [2m(2 obs. fim_semana)[0m
+2026-07-20 16:12:44 [INFO] 
+2026-07-20 16:12:44 [INFO]   🔴 [91m[1mPT0002000073720434JD[0m  [2m[sem cluster][0m
+2026-07-20 16:12:44 [INFO]      consumiu MAIS que o habitual às 12h
+2026-07-20 16:12:44 [INFO]      [2mReal:[0m 94.0 kWh   [2mHabitual:[0m 24.5 ± 3.5 kWh   [2mz:[0m +10.00⁺   [2mdesvio:[0m +284%   [2m(2 obs. fim_semana)[0m
+2026-07-20 16:12:44 [INFO] 
+2026-07-20 16:12:44 [INFO]   🔴 [91m[1mPT0002000081344542CP[0m  [2m[Cluster 1][0m
+2026-07-20 16:12:44 [INFO]      consumiu MAIS que o habitual às 15h
+2026-07-20 16:12:44 [INFO]      [2mReal:[0m 5.0 kWh   [2mHabitual:[0m 2.0 ± 0.3 kWh   [2mz:[0m +10.00   [2mdesvio:[0m +150%   [2m(2 obs. fim_semana)[0m
+2026-07-20 16:12:44 [INFO] 
+2026-07-20 16:12:44 [INFO]   🔴 [91m[1mPT0002000081344542CP[0m  [2m[Cluster 1][0m
+2026-07-20 16:12:44 [INFO]      consumiu MAIS que o habitual às 19h
+2026-07-20 16:12:44 [INFO]      [2mReal:[0m 4.0 kWh   [2mHabitual:[0m 1.0 ± 0.3 kWh   [2mz:[0m +10.00   [2mdesvio:[0m +300%   [2m(2 obs. fim_semana)[0m
+2026-07-20 16:12:44 [INFO] 
+2026-07-20 16:12:44 [INFO]   🔴 [91m[1mPT0002000110607652SB[0m  [2m[Cluster 0][0m
+2026-07-20 16:12:44 [INFO]      consumiu MAIS que o habitual às 00h
+2026-07-20 16:12:44 [INFO]      [2mReal:[0m 16.0 kWh   [2mHabitual:[0m 8.0 ± 0.8 kWh   [2mz:[0m +10.00   [2mdesvio:[0m +100%   [2m(2 obs. fim_semana)[0m
+2026-07-20 16:12:44 [INFO] 
+2026-07-20 16:12:44 [INFO]   🔴 [91m[1mPT0002000110607652SB[0m  [2m[Cluster 0][0m
+2026-07-20 16:12:44 [INFO]      consumiu MAIS que o habitual às 01h
+2026-07-20 16:12:44 [INFO]      [2mReal:[0m 16.0 kWh   [2mHabitual:[0m 8.0 ± 0.8 kWh   [2mz:[0m +10.00   [2mdesvio:[0m +100%   [2m(2 obs. fim_semana)[0m
+2026-07-20 16:12:44 [INFO] 
+2026-07-20 16:12:44 [INFO]   🔴 [91m[1mPT0002000110607652SB[0m  [2m[Cluster 0][0m
+2026-07-20 16:12:44 [INFO]      consumiu MAIS que o habitual às 02h
+2026-07-20 16:12:44 [INFO]      [2mReal:[0m 16.0 kWh   [2mHabitual:[0m 8.0 ± 0.8 kWh   [2mz:[0m +10.00   [2mdesvio:[0m +100%   [2m(2 obs. fim_semana)[0m
+2026-07-20 16:12:44 [INFO] 
+2026-07-20 16:12:44 [INFO]   🔴 [91m[1mPT0002000110607652SB[0m  [2m[Cluster 0][0m
+2026-07-20 16:12:44 [INFO]      consumiu MAIS que o habitual às 04h
+2026-07-20 16:12:44 [INFO]      [2mReal:[0m 16.0 kWh   [2mHabitual:[0m 8.0 ± 0.8 kWh   [2mz:[0m +10.00   [2mdesvio:[0m +100%   [2m(2 obs. fim_semana)[0m
+2026-07-20 16:12:44 [INFO] 
+2026-07-20 16:12:44 [INFO]   🔴 [91m[1mPT0002000110607652SB[0m  [2m[Cluster 0][0m
+2026-07-20 16:12:44 [INFO]      consumiu MAIS que o habitual às 05h
+2026-07-20 16:12:44 [INFO]      [2mReal:[0m 16.0 kWh   [2mHabitual:[0m 8.0 ± 0.8 kWh   [2mz:[0m +10.00   [2mdesvio:[0m +100%   [2m(2 obs. fim_semana)[0m
+2026-07-20 16:12:44 [INFO] 
+2026-07-20 16:12:44 [INFO]   🔴 [91m[1mPT0002000110607652SB[0m  [2m[Cluster 0][0m
+2026-07-20 16:12:44 [INFO]      consumiu MAIS que o habitual às 06h
+2026-07-20 16:12:44 [INFO]      [2mReal:[0m 16.0 kWh   [2mHabitual:[0m 8.0 ± 0.8 kWh   [2mz:[0m +10.00   [2mdesvio:[0m +100%   [2m(2 obs. fim_semana)[0m
+2026-07-20 16:12:44 [INFO] 
+2026-07-20 16:12:44 [INFO]   🔴 [91m[1mPT0002000203886452WB[0m  [2m[sem cluster][0m
+2026-07-20 16:12:44 [INFO]      consumiu MAIS que o habitual às 16h
+2026-07-20 16:12:44 [INFO]      [2mReal:[0m 104.0 kWh   [2mHabitual:[0m 46.0 ± 4.6 kWh   [2mz:[0m +10.00⁺   [2mdesvio:[0m +126%   [2m(2 obs. fim_semana)[0m
+2026-07-20 16:12:44 [INFO] 
+2026-07-20 16:12:44 [INFO]   🔴 [91m[1mPT0002000068859325FL[0m  [2m[Cluster 1][0m
+2026-07-20 16:12:44 [INFO]      consumiu MAIS que o habitual às 22h
+2026-07-20 16:12:44 [INFO]      [2mReal:[0m 376.0 kWh   [2mHabitual:[0m 132.0 ± 26.2 kWh   [2mz:[0m +9.30   [2mdesvio:[0m +185%   [2m(3 obs. fim_semana)[0m
+2026-07-20 16:12:44 [INFO] 
+2026-07-20 16:12:44 [INFO]   🔴 [91m[1mPT0002000119303492KB[0m  [2m[Cluster 0][0m
+2026-07-20 16:12:44 [INFO]      consumiu MAIS que o habitual às 05h
+2026-07-20 16:12:44 [INFO]      [2mReal:[0m 9.0 kWh   [2mHabitual:[0m 5.0 ± 0.5 kWh   [2mz:[0m +8.00   [2mdesvio:[0m +80%   [2m(2 obs. fim_semana)[0m
+2026-07-20 16:12:44 [INFO] 
+2026-07-20 16:12:44 [INFO]   🔴 [91m[1mPT0002000068856872QG[0m  [2m[Cluster 1][0m
+2026-07-20 16:12:44 [INFO]      consumiu MAIS que o habitual às 11h
+2026-07-20 16:12:44 [INFO]      [2mReal:[0m 2.0 kWh   [2mHabitual:[0m 0.0 ± 0.3 kWh   [2mz:[0m +6.67   [2mdesvio:[0m +200000%   [2m(2 obs. fim_semana)[0m
+2026-07-20 16:12:44 [INFO] 
+2026-07-20 16:12:44 [INFO]   🔴 [91m[1mPT0002000068856872QG[0m  [2m[Cluster 1][0m
+2026-07-20 16:12:44 [INFO]      consumiu MAIS que o habitual às 18h
+2026-07-20 16:12:44 [INFO]      [2mReal:[0m 2.0 kWh   [2mHabitual:[0m 0.0 ± 0.3 kWh   [2mz:[0m +6.67   [2mdesvio:[0m +200000%   [2m(2 obs. fim_semana)[0m
+2026-07-20 16:12:44 [INFO] 
+2026-07-20 16:12:44 [INFO]   🔵 [94m[1mPT0002000105483259QH[0m  [2m[Cluster 1][0m
+2026-07-20 16:12:44 [INFO]      consumiu MENOS que o habitual às 18h
+2026-07-20 16:12:44 [INFO]      [2mReal:[0m 0.0 kWh   [2mHabitual:[0m 2.0 ± 0.3 kWh   [2mz:[0m -6.67   [2mdesvio:[0m -100%   [2m(2 obs. fim_semana)[0m
+2026-07-20 16:12:44 [INFO] 
+2026-07-20 16:12:44 [INFO]   🔴 [91m[1mPT0002000119303492KB[0m  [2m[Cluster 0][0m
+2026-07-20 16:12:44 [INFO]      consumiu MAIS que o habitual às 04h
+2026-07-20 16:12:44 [INFO]      [2mReal:[0m 10.0 kWh   [2mHabitual:[0m 6.0 ± 0.6 kWh   [2mz:[0m +6.67   [2mdesvio:[0m +67%   [2m(2 obs. fim_semana)[0m
+2026-07-20 16:12:44 [INFO] 
+2026-07-20 16:12:44 [INFO]   🔵 [94m[1mPT0002000068859393XH[0m  [2m[Cluster 1][0m
+2026-07-20 16:12:44 [INFO]      consumiu MENOS que o habitual às 16h
+2026-07-20 16:12:44 [INFO]      [2mReal:[0m 49.0 kWh   [2mHabitual:[0m 135.5 ± 13.6 kWh   [2mz:[0m -6.38   [2mdesvio:[0m -64%   [2m(2 obs. fim_semana)[0m
+2026-07-20 16:12:44 [INFO] 
+2026-07-20 16:12:44 [INFO]   🔴 [91m[1mPT0002000081344542CP[0m  [2m[Cluster 1][0m
+2026-07-20 16:12:44 [INFO]      consumiu MAIS que o habitual às 07h
+2026-07-20 16:12:44 [INFO]      [2mReal:[0m 6.0 kWh   [2mHabitual:[0m 1.5 ± 0.7 kWh   [2mz:[0m +6.36   [2mdesvio:[0m +300%   [2m(2 obs. fim_semana)[0m
+2026-07-20 16:12:44 [INFO] 
+2026-07-20 16:12:44 [INFO]   🔵 [94m[1mPT0002000068859393XH[0m  [2m[Cluster 1][0m
+2026-07-20 16:12:44 [INFO]      consumiu MENOS que o habitual às 14h
+2026-07-20 16:12:44 [INFO]      [2mReal:[0m 55.0 kWh   [2mHabitual:[0m 149.5 ± 14.9 kWh   [2mz:[0m -6.32   [2mdesvio:[0m -63%   [2m(2 obs. fim_semana)[0m
+2026-07-20 16:12:44 [INFO] 
+2026-07-20 16:12:44 [INFO]   🔵 [94m[1mPT0002000068859393XH[0m  [2m[Cluster 1][0m
+2026-07-20 16:12:44 [INFO]      consumiu MENOS que o habitual às 15h
+2026-07-20 16:12:44 [INFO]      [2mReal:[0m 51.0 kWh   [2mHabitual:[0m 138.5 ± 13.8 kWh   [2mz:[0m -6.32   [2mdesvio:[0m -63%   [2m(2 obs. fim_semana)[0m
+2026-07-20 16:12:44 [INFO] 
+2026-07-20 16:12:44 [INFO]   🔵 [94m[1mPT0002000068859393XH[0m  [2m[Cluster 1][0m
+2026-07-20 16:12:44 [INFO]      consumiu MENOS que o habitual às 18h
+2026-07-20 16:12:44 [INFO]      [2mReal:[0m 53.0 kWh   [2mHabitual:[0m 144.0 ± 14.4 kWh   [2mz:[0m -6.32   [2mdesvio:[0m -63%   [2m(2 obs. fim_semana)[0m
+2026-07-20 16:12:44 [INFO] 
+2026-07-20 16:12:44 [INFO]   🔴 [91m[1mPT0002000073720434JD[0m  [2m[sem cluster][0m
+2026-07-20 16:12:44 [INFO]      consumiu MAIS que o habitual às 13h
+2026-07-20 16:12:44 [INFO]      [2mReal:[0m 81.0 kWh   [2mHabitual:[0m 24.5 ± 9.2 kWh   [2mz:[0m +6.15   [2mdesvio:[0m +231%   [2m(2 obs. fim_semana)[0m
+2026-07-20 16:12:44 [INFO] 
+2026-07-20 16:12:44 [INFO]   🔵 [94m[1mPT0002000068859393XH[0m  [2m[Cluster 1][0m
+2026-07-20 16:12:44 [INFO]      consumiu MENOS que o habitual às 13h
+2026-07-20 16:12:44 [INFO]      [2mReal:[0m 61.0 kWh   [2mHabitual:[0m 154.0 ± 15.4 kWh   [2mz:[0m -6.04   [2mdesvio:[0m -60%   [2m(2 obs. fim_semana)[0m
+2026-07-20 16:12:44 [INFO] 
+2026-07-20 16:12:44 [INFO]   🔵 [94m[1mPT0002000068859393XH[0m  [2m[Cluster 1][0m
+2026-07-20 16:12:44 [INFO]      consumiu MENOS que o habitual às 17h
+2026-07-20 16:12:44 [INFO]      [2mReal:[0m 54.0 kWh   [2mHabitual:[0m 136.5 ± 13.7 kWh   [2mz:[0m -6.04   [2mdesvio:[0m -60%   [2m(2 obs. fim_semana)[0m
+2026-07-20 16:12:44 [INFO] 
+2026-07-20 16:12:44 [INFO]   🔵 [94m[1mPT0002000079469719HF[0m  [2m[sem cluster][0m
+2026-07-20 16:12:44 [INFO]      consumiu MENOS que o habitual às 14h
+2026-07-20 16:12:44 [INFO]      [2mReal:[0m 20.0 kWh   [2mHabitual:[0m 50.5 ± 5.0 kWh   [2mz:[0m -6.04   [2mdesvio:[0m -60%   [2m(2 obs. fim_semana)[0m
+2026-07-20 16:12:44 [INFO] 
+2026-07-20 16:12:44 [INFO]   🔵 [94m[1mPT0002000201038711LS[0m  [2m[sem cluster][0m
+2026-07-20 16:12:44 [INFO]      consumiu MENOS que o habitual às 20h
+2026-07-20 16:12:44 [INFO]      [2mReal:[0m 11.0 kWh   [2mHabitual:[0m 53.0 ± 7.1 kWh   [2mz:[0m -5.94   [2mdesvio:[0m -79%   [2m(2 obs. fim_semana)[0m
+2026-07-20 16:12:44 [INFO] 
+2026-07-20 16:12:44 [INFO]   🔵 [94m[1mPT0002000079469719HF[0m  [2m[sem cluster][0m
+2026-07-20 16:12:44 [INFO]      consumiu MENOS que o habitual às 13h
+2026-07-20 16:12:44 [INFO]      [2mReal:[0m 29.0 kWh   [2mHabitual:[0m 65.0 ± 6.5 kWh   [2mz:[0m -5.54   [2mdesvio:[0m -55%   [2m(2 obs. fim_semana)[0m
+2026-07-20 16:12:44 [INFO] 
+2026-07-20 16:12:44 [INFO]   🔵 [94m[1mPT0002000068859393XH[0m  [2m[Cluster 1][0m
+2026-07-20 16:12:44 [INFO]      consumiu MENOS que o habitual às 19h
+2026-07-20 16:12:44 [INFO]      [2mReal:[0m 61.0 kWh   [2mHabitual:[0m 162.0 ± 18.4 kWh   [2mz:[0m -5.49   [2mdesvio:[0m -62%   [2m(2 obs. fim_semana)[0m
+2026-07-20 16:12:44 [INFO] 
+2026-07-20 16:12:44 [INFO]   🔴 [91m[1mPT0002000073720434JD[0m  [2m[sem cluster][0m
+2026-07-20 16:12:44 [INFO]      consumiu MAIS que o habitual às 10h
+2026-07-20 16:12:44 [INFO]      [2mReal:[0m 88.0 kWh   [2mHabitual:[0m 27.5 ± 12.0 kWh   [2mz:[0m +5.03   [2mdesvio:[0m +220%   [2m(2 obs. fim_semana)[0m
+2026-07-20 16:12:44 [INFO] 
+2026-07-20 16:12:44 [INFO]   🔴 [91m[1mPT0002000068856974CZ[0m  [2m[sem cluster][0m
+2026-07-20 16:12:44 [INFO]      consumiu MAIS que o habitual às 01h
+2026-07-20 16:12:44 [INFO]      [2mReal:[0m 15.0 kWh   [2mHabitual:[0m 10.0 ± 1.0 kWh   [2mz:[0m +5.00   [2mdesvio:[0m +50%   [2m(2 obs. fim_semana)[0m
+2026-07-20 16:12:44 [INFO] 
+2026-07-20 16:12:44 [INFO]   🔴 [91m[1mPT0002000110607652SB[0m  [2m[Cluster 0][0m
+2026-07-20 16:12:44 [INFO]      consumiu MAIS que o habitual às 03h
+2026-07-20 16:12:44 [INFO]      [2mReal:[0m 12.0 kWh   [2mHabitual:[0m 8.0 ± 0.8 kWh   [2mz:[0m +5.00   [2mdesvio:[0m +50%   [2m(2 obs. fim_semana)[0m
+2026-07-20 16:12:44 [INFO] 
+2026-07-20 16:12:44 [INFO]   🔴 [91m[1mPT0002000119303492KB[0m  [2m[Cluster 0][0m
+2026-07-20 16:12:44 [INFO]      consumiu MAIS que o habitual às 01h
+2026-07-20 16:12:44 [INFO]      [2mReal:[0m 9.0 kWh   [2mHabitual:[0m 6.0 ± 0.6 kWh   [2mz:[0m +5.00   [2mdesvio:[0m +50%   [2m(2 obs. fim_semana)[0m
+2026-07-20 16:12:44 [INFO] 
+2026-07-20 16:12:44 [INFO]   🔴 [91m[1mPT0002000119303492KB[0m  [2m[Cluster 0][0m
+2026-07-20 16:12:44 [INFO]      consumiu MAIS que o habitual às 02h
+2026-07-20 16:12:44 [INFO]      [2mReal:[0m 9.0 kWh   [2mHabitual:[0m 6.0 ± 0.6 kWh   [2mz:[0m +5.00   [2mdesvio:[0m +50%   [2m(2 obs. fim_semana)[0m
+2026-07-20 16:12:44 [INFO] 
+2026-07-20 16:12:44 [INFO]   🔴 [91m[1mPT0002000119303492KB[0m  [2m[Cluster 0][0m
+2026-07-20 16:12:44 [INFO]      consumiu MAIS que o habitual às 03h
+2026-07-20 16:12:44 [INFO]      [2mReal:[0m 9.0 kWh   [2mHabitual:[0m 6.0 ± 0.6 kWh   [2mz:[0m +5.00   [2mdesvio:[0m +50%   [2m(2 obs. fim_semana)[0m
+2026-07-20 16:12:44 [INFO] 
+2026-07-20 16:12:44 [INFO]   🔴 [91m[1mPT0002000203886452WB[0m  [2m[sem cluster][0m
+2026-07-20 16:12:44 [INFO]      consumiu MAIS que o habitual às 15h
+2026-07-20 16:12:44 [INFO]      [2mReal:[0m 72.0 kWh   [2mHabitual:[0m 44.0 ± 5.7 kWh   [2mz:[0m +4.95   [2mdesvio:[0m +64%   [2m(2 obs. fim_semana)[0m
+2026-07-20 16:12:44 [INFO] 
+2026-07-20 16:12:44 [INFO]   🔴 [91m[1mPT0002000068856974CZ[0m  [2m[sem cluster][0m
+2026-07-20 16:12:44 [INFO]      consumiu MAIS que o habitual às 00h
+2026-07-20 16:12:44 [INFO]      [2mReal:[0m 14.0 kWh   [2mHabitual:[0m 9.5 ± 0.9 kWh   [2mz:[0m +4.74   [2mdesvio:[0m +47%   [2m(2 obs. fim_semana)[0m
+2026-07-20 16:12:44 [INFO] 
+2026-07-20 16:12:44 [INFO]   🔴 [91m[1mPT0002000068856974CZ[0m  [2m[sem cluster][0m
+2026-07-20 16:12:44 [INFO]      consumiu MAIS que o habitual às 02h
+2026-07-20 16:12:44 [INFO]      [2mReal:[0m 14.0 kWh   [2mHabitual:[0m 9.5 ± 0.9 kWh   [2mz:[0m +4.74   [2mdesvio:[0m +47%   [2m(2 obs. fim_semana)[0m
+2026-07-20 16:12:44 [INFO] 
+2026-07-20 16:12:44 [INFO]   🔴 [91m[1mPT0002000068856974CZ[0m  [2m[sem cluster][0m
+2026-07-20 16:12:44 [INFO]      consumiu MAIS que o habitual às 06h
+2026-07-20 16:12:44 [INFO]      [2mReal:[0m 14.0 kWh   [2mHabitual:[0m 9.5 ± 0.9 kWh   [2mz:[0m +4.74   [2mdesvio:[0m +47%   [2m(2 obs. fim_semana)[0m
+2026-07-20 16:12:44 [INFO] 
+2026-07-20 16:12:44 [INFO]   🔴 [91m[1mPT0002000068859393XH[0m  [2m[Cluster 1][0m
+2026-07-20 16:12:44 [INFO]      consumiu MAIS que o habitual às 07h
+2026-07-20 16:12:44 [INFO]      [2mReal:[0m 88.0 kWh   [2mHabitual:[0m 26.5 ± 13.4 kWh   [2mz:[0m +4.58   [2mdesvio:[0m +232%   [2m(2 obs. fim_semana)[0m
+2026-07-20 16:12:44 [INFO] 
+2026-07-20 16:12:44 [INFO]   🔴 [91m[1mPT0002000068859325FL[0m  [2m[Cluster 1][0m
+2026-07-20 16:12:44 [INFO]      consumiu MAIS que o habitual às 21h
+2026-07-20 16:12:44 [INFO]      [2mReal:[0m 404.0 kWh   [2mHabitual:[0m 162.7 ± 58.3 kWh   [2mz:[0m +4.14   [2mdesvio:[0m +148%   [2m(3 obs. fim_semana)[0m
+2026-07-20 16:12:44 [INFO] 
+2026-07-20 16:12:44 [INFO]   🔵 [94m[1mPT0002000068857099AR[0m  [2m[Cluster 1][0m
+2026-07-20 16:12:44 [INFO]      consumiu MENOS que o habitual às 17h
+2026-07-20 16:12:44 [INFO]      [2mReal:[0m 3.0 kWh   [2mHabitual:[0m 5.0 ± 0.5 kWh   [2mz:[0m -4.00   [2mdesvio:[0m -40%   [2m(2 obs. fim_semana)[0m
+2026-07-20 16:12:44 [INFO] 
+2026-07-20 16:12:44 [INFO]   🔵 [94m[1mPT0002000068859597LS[0m  [2m[Cluster 0][0m
+2026-07-20 16:12:44 [INFO]      consumiu MENOS que o habitual às 22h
+2026-07-20 16:12:44 [INFO]      [2mReal:[0m 31.0 kWh   [2mHabitual:[0m 74.0 ± 10.8 kWh   [2mz:[0m -3.98   [2mdesvio:[0m -58%   [2m(3 obs. fim_semana)[0m
+2026-07-20 16:12:44 [INFO] 
+2026-07-20 16:12:44 [INFO]   🔵 [94m[1mPT0002000068859597LS[0m  [2m[Cluster 0][0m
+2026-07-20 16:12:44 [INFO]      consumiu MENOS que o habitual às 23h
+2026-07-20 16:12:44 [INFO]      [2mReal:[0m 31.0 kWh   [2mHabitual:[0m 74.0 ± 10.8 kWh   [2mz:[0m -3.98   [2mdesvio:[0m -58%   [2m(3 obs. fim_semana)[0m
+2026-07-20 16:12:44 [INFO] 
+2026-07-20 16:12:44 [INFO]   🔵 [94m[1mPT0002000079469719HF[0m  [2m[sem cluster][0m
+2026-07-20 16:12:44 [INFO]      consumiu MENOS que o habitual às 15h
+2026-07-20 16:12:44 [INFO]      [2mReal:[0m 25.0 kWh   [2mHabitual:[0m 63.0 ± 9.9 kWh   [2mz:[0m -3.84   [2mdesvio:[0m -60%   [2m(2 obs. fim_semana)[0m
+2026-07-20 16:12:44 [INFO] 
+2026-07-20 16:12:44 [INFO]   🔴 [91m[1mPT0002000068859393XH[0m  [2m[Cluster 1][0m
+2026-07-20 16:12:44 [INFO]      consumiu MAIS que o habitual às 08h
+2026-07-20 16:12:44 [INFO]      [2mReal:[0m 112.0 kWh   [2mHabitual:[0m 81.0 ± 8.1 kWh   [2mz:[0m +3.83   [2mdesvio:[0m +38%   [2m(2 obs. fim_semana)[0m
+2026-07-20 16:12:44 [INFO] 
+2026-07-20 16:12:44 [INFO]   🔵 [94m[1mPT0002000079469719HF[0m  [2m[sem cluster][0m
+2026-07-20 16:12:44 [INFO]      consumiu MENOS que o habitual às 16h
+2026-07-20 16:12:44 [INFO]      [2mReal:[0m 39.0 kWh   [2mHabitual:[0m 76.5 ± 10.6 kWh   [2mz:[0m -3.54   [2mdesvio:[0m -49%   [2m(2 obs. fim_semana)[0m
+2026-07-20 16:12:44 [INFO] 
+2026-07-20 16:12:44 [INFO]   🔴 [91m[1mPT0002000112989585PH[0m  [2m[Cluster 0][0m
+2026-07-20 16:12:44 [INFO]      consumiu MAIS que o habitual às 09h
+2026-07-20 16:12:44 [INFO]      [2mReal:[0m 16.0 kWh   [2mHabitual:[0m 3.5 ± 3.5 kWh   [2mz:[0m +3.54   [2mdesvio:[0m +357%   [2m(2 obs. fim_semana)[0m
+2026-07-20 16:12:44 [INFO] 
+2026-07-20 16:12:44 [INFO]   🔴 [91m[1mPT0002000203886452WB[0m  [2m[sem cluster][0m
+2026-07-20 16:12:44 [INFO]      consumiu MAIS que o habitual às 18h
+2026-07-20 16:12:44 [INFO]      [2mReal:[0m 92.0 kWh   [2mHabitual:[0m 68.0 ± 6.8 kWh   [2mz:[0m +3.53   [2mdesvio:[0m +35%   [2m(2 obs. fim_semana)[0m
+2026-07-20 16:12:44 [INFO] 
+2026-07-20 16:12:44 [INFO]   [2mCSV:[0m /home/runner/work/ts-anomaly-detection-dissertation/ts-anomaly-detection-dissertation/results/energia/realtime/alerts/analise_energia_2026-07-19.csv
+2026-07-20 16:12:44 [INFO] 
+2026-07-20 16:12:44 [INFO] [96m→ A prever consumo de 2026-07-20 para 276 CPEs...[0m
+2026-07-20 16:12:46 [INFO] [1m══════════════════════════════════════════════════════════════════════[0m
+2026-07-20 16:12:46 [INFO] [1m  PREDIÇÃO — 2026-07-20 [0m[2m(dia util)[0m
+2026-07-20 16:12:46 [INFO] [1m══════════════════════════════════════════════════════════════════════[0m
+2026-07-20 16:12:46 [INFO]   [95m● CPEs previstos[0m          69 [2m(alta: 0, baixa: 1656)[0m
+2026-07-20 16:12:46 [INFO]   [95m● Consumo total previsto[0m 100582.1 kWh [2m(±20546.7)[0m
+2026-07-20 16:12:46 [INFO] 
+2026-07-20 16:12:46 [INFO]   [2mPrevisão guardada:[0m /home/runner/work/ts-anomaly-detection-dissertation/ts-anomaly-detection-dissertation/results/energia/realtime/predictions/previsao_energia_2026-07-20.csv
+2026-07-20 16:12:46 [INFO] 
+2026-07-20 16:12:46 [INFO] [1m══════════════════════════════════════════════════════════════════════[0m
+2026-07-20 16:12:46 [INFO] [1m  VALIDAÇÃO — qualidade das previsões anteriores[0m
+2026-07-20 16:12:46 [INFO] [1m══════════════════════════════════════════════════════════════════════[0m
+2026-07-20 16:12:46 [INFO]   [2mDias validados:[0m 5   [2mpendentes:[0m 34
+2026-07-20 16:12:46 [INFO]   [2mÚltimo (2026-07-19):[0m MAE 11.06 kWh   RMSE 24.45   em ±1σ 56% [2m(esperado ~68%)[0m   em ±2σ 92% [2m(esperado ~95%)[0m
+2026-07-20 16:12:46 [INFO]   [2mMédia acumulada:[0m MAE 19.73 kWh   RMSE 43.84   em ±1σ 64%   em ±2σ 82%
+2026-07-20 16:12:46 [INFO]   [2mCSV:[0m /home/runner/work/ts-anomaly-detection-dissertation/ts-anomaly-detection-dissertation/results/energia/realtime/analysis/qualidade_previsoes_energia.csv
+2026-07-20 16:12:46 [INFO] 
+2026-07-20 16:12:46 [INFO] 
+2026-07-20 16:12:46 [INFO] Concluido em 760.7s. Ficheiros gerados: 2
