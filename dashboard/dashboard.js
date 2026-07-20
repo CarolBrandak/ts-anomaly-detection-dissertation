@@ -7,6 +7,7 @@ const DATASETS = {
     subtitle: "CMMaia · Energia · Deteção em tempo real",
     unit: "kWh",
     hasPrediction: true,
+    defaultThreshold: 3.0,
     entitySingular: "CPE",
     entityPlural: "CPEs",
     pointLabel: "pontos CPE/hora",
@@ -41,6 +42,7 @@ const DATASETS = {
     subtitle: "CMMaia · Água · Deteção em tempo real",
     unit: "m³",
     hasPrediction: false,
+    defaultThreshold: 2.0,
     entitySingular: "contador",
     entityPlural: "contadores",
     pointLabel: "pontos contador/hora",
@@ -576,7 +578,7 @@ function renderOntem(res, reincidencias = new Map(), sparkHistory = new Map()){
     z:+r.z_score, veredicto:r.veredicto, direcao:r.direcao,
     confianca:r.confianca, ndias:+r.n_dias_tipo, threshold:+r.threshold,
   }));
-  const thr = rows.length ? rows[0].threshold : 2.0;
+  const thr = Number.isFinite(rows[0]?.threshold) ? rows[0].threshold : cfg.defaultThreshold;
   const desvios = rows.filter(r=>r.veredicto==="desvio");
   const alta = desvios.filter(r=>r.confianca==="alta");
   const baixa = desvios.filter(r=>r.confianca==="baixa");

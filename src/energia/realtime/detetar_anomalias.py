@@ -40,9 +40,9 @@ warnings.filterwarnings("ignore")
 
 # Parâmetros
 THRESHOLD_POR_TIPO = {
-    "dia_util"  : 2.0,
-    "fim_semana": 2.5,
-    "feriado"   : 3.0,
+    "dia_util"  : 3.0,
+    "fim_semana": 3.5,
+    "feriado"   : 4.0,
 }
 MIN_HIST_IDEAL       = 10    # dias do mesmo tipo para confiança "alta"
 MIN_HIST_ABSOLUTO    = 2     # mínimo absoluto para usar o CPE/hora
@@ -66,6 +66,7 @@ class Cor:
 class Parametros:
     data_alvo:         Optional[date]
     modo_dados:        str  = "baze"
+    usar_cache:        bool = False
     gerar_plots:       bool = False
     quiet:             bool = False
     so_alta_confianca: bool = False
@@ -165,10 +166,10 @@ def configurar_logging(quiet: bool = False) -> logging.Logger:
 
 # CARREGAMENTO DE DADOS
 
-def carregar_dados_baze(logger: logging.Logger) -> pd.DataFrame:
+def carregar_dados_baze(logger: logging.Logger, usar_cache: bool = False) -> pd.DataFrame:
     logger.info(f"{Cor.CIANO}→ A pedir dados ao BaZe "
                 f"({len(CPES_CONFIG)} CPEs)...{Cor.RESET}")
-    df = carregar_ontem(CPES_CONFIG, usar_cache=False)
+    df = carregar_ontem(CPES_CONFIG, usar_cache=usar_cache)
 
     if df.empty:
         logger.error(f"{Cor.VERMELHO}Sem dados retornados pelo BaZe.{Cor.RESET}")
@@ -211,8 +212,8 @@ def carregar_dados_zip(logger: logging.Logger) -> pd.DataFrame:
     return agregar_para_hora(df)
 
 
-def carregar_dados(modo: str, logger: logging.Logger) -> pd.DataFrame:
-    df = carregar_dados_baze(logger) if modo == "baze" \
+def carregar_dados(modo: str, logger: logging.Logger, usar_cache: bool = False) -> pd.DataFrame:
+    df = carregar_dados_baze(logger, usar_cache=usar_cache) if modo == "baze" \
          else carregar_dados_zip(logger)
 
     if "PotActiva" not in df.columns:
@@ -792,6 +793,8 @@ def parse_args() -> Parametros:
                    help="Data a analisar (default: ontem)")
     p.add_argument("--modo", type=str, default="baze", choices=["baze", "zip"],
                    help="Fonte de dados (default: baze)")
+    p.add_argument("--usar-cache", action="store_true",
+                   help="Usar cache local dos pedidos ao BaZe")
     p.add_argument("--plots", action="store_true",
                    help="Gerar gráficos para CPEs com desvio")
     p.add_argument("--quiet", action="store_true",
@@ -818,6 +821,7 @@ def parse_args() -> Parametros:
     return Parametros(
         data_alvo=data_alvo,
         modo_dados=args.modo,
+        usar_cache=args.usar_cache,
         gerar_plots=args.plots,
         quiet=args.quiet,
         so_alta_confianca=args.so_alta_confianca,
@@ -837,7 +841,7 @@ def main() -> int:
 
     try:
         # 1. Dados
-        df = carregar_dados(params.modo_dados, logger)
+        df = carregar_dados(params.modo_dados, logger, usar_cache=params.usar_cache)
         if params.data_alvo is None:
             params.data_alvo = escolher_data_alvo(df)
             # Back-test honesto: nunca usar dados posteriores ao dia analisado

@@ -43,9 +43,9 @@ STD_ABSOLUTO = 0.01  # 10 litros, em m3
 Z_CAP = 10.0
 
 THRESHOLD_POR_TIPO = {
-    "dia_util": 2.0,
-    "fim_semana": 2.5,
-    "feriado": 3.0,
+    "dia_util": 3.5,
+    "fim_semana": 4.0,
+    "feriado": 4.5,
 }
 
 

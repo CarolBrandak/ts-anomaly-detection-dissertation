@@ -1,1 +1,201 @@
 2026-07-20 10:21:07 [ERROR] Sem dados de agua para analisar.
+2026-07-20 12:50:28 [INFO] 
+2026-07-20 12:50:28 [INFO] ANALISE DE AGUA - 2026-05-01 (feriado)
+2026-07-20 12:50:28 [INFO] Contadores com dados: 409
+2026-07-20 12:50:28 [INFO] Pontos contador/hora: 7929
+2026-07-20 12:50:52 [INFO] Normais: 7778
+2026-07-20 12:50:52 [INFO] Desvios alta confianca: 0
+2026-07-20 12:50:52 [INFO] Desvios baixa confianca: 151
+2026-07-20 12:50:52 [INFO] Sem historico suficiente: 0
+2026-07-20 12:50:52 [INFO] CSV guardado: C:\Users\anaca\OneDrive\Ambiente de Trabalho\Tese\ts-anomaly-detection-dissertation\results\agua\realtime\alerts\analise_agua_2026-05-01.csv
+2026-07-20 12:50:53 [INFO] 
+2026-07-20 12:50:53 [INFO] ANALISE DE AGUA - 2026-05-02 (fim semana)
+2026-07-20 12:50:53 [INFO] Contadores com dados: 360
+2026-07-20 12:50:53 [INFO] Pontos contador/hora: 7938
+2026-07-20 12:51:23 [INFO] Normais: 7824
+2026-07-20 12:51:23 [INFO] Desvios alta confianca: 93
+2026-07-20 12:51:23 [INFO] Desvios baixa confianca: 21
+2026-07-20 12:51:23 [INFO] Sem historico suficiente: 0
+2026-07-20 12:51:23 [INFO] CSV guardado: C:\Users\anaca\OneDrive\Ambiente de Trabalho\Tese\ts-anomaly-detection-dissertation\results\agua\realtime\alerts\analise_agua_2026-05-02.csv
+2026-07-20 12:51:23 [INFO] 
+2026-07-20 12:51:23 [INFO] ANALISE DE AGUA - 2026-05-03 (fim semana)
+2026-07-20 12:51:23 [INFO] Contadores com dados: 358
+2026-07-20 12:51:23 [INFO] Pontos contador/hora: 7916
+2026-07-20 12:51:53 [INFO] Normais: 7863
+2026-07-20 12:51:53 [INFO] Desvios alta confianca: 49
+2026-07-20 12:51:53 [INFO] Desvios baixa confianca: 4
+2026-07-20 12:51:53 [INFO] Sem historico suficiente: 0
+2026-07-20 12:51:53 [INFO] CSV guardado: C:\Users\anaca\OneDrive\Ambiente de Trabalho\Tese\ts-anomaly-detection-dissertation\results\agua\realtime\alerts\analise_agua_2026-05-03.csv
+2026-07-20 12:51:53 [INFO] 
+2026-07-20 12:51:53 [INFO] ANALISE DE AGUA - 2026-05-04 (dia util)
+2026-07-20 12:51:53 [INFO] Contadores com dados: 360
+2026-07-20 12:51:53 [INFO] Pontos contador/hora: 7851
+2026-07-20 12:52:15 [INFO] Normais: 7751
+2026-07-20 12:52:15 [INFO] Desvios alta confianca: 99
+2026-07-20 12:52:15 [INFO] Desvios baixa confianca: 1
+2026-07-20 12:52:15 [INFO] Sem historico suficiente: 0
+2026-07-20 12:52:15 [INFO] CSV guardado: C:\Users\anaca\OneDrive\Ambiente de Trabalho\Tese\ts-anomaly-detection-dissertation\results\agua\realtime\alerts\analise_agua_2026-05-04.csv
+2026-07-20 12:52:16 [INFO] 
+2026-07-20 12:52:16 [INFO] ANALISE DE AGUA - 2026-05-05 (dia util)
+2026-07-20 12:52:16 [INFO] Contadores com dados: 361
+2026-07-20 12:52:16 [INFO] Pontos contador/hora: 7892
+2026-07-20 12:52:37 [INFO] Normais: 7797
+2026-07-20 12:52:37 [INFO] Desvios alta confianca: 95
+2026-07-20 12:52:37 [INFO] Desvios baixa confianca: 0
+2026-07-20 12:52:37 [INFO] Sem historico suficiente: 0
+2026-07-20 12:52:38 [INFO] CSV guardado: C:\Users\anaca\OneDrive\Ambiente de Trabalho\Tese\ts-anomaly-detection-dissertation\results\agua\realtime\alerts\analise_agua_2026-05-05.csv
+2026-07-20 12:52:38 [INFO] 
+2026-07-20 12:52:38 [INFO] ANALISE DE AGUA - 2026-05-06 (dia util)
+2026-07-20 12:52:38 [INFO] Contadores com dados: 359
+2026-07-20 12:52:38 [INFO] Pontos contador/hora: 7870
+2026-07-20 12:52:58 [INFO] Normais: 7805
+2026-07-20 12:52:58 [INFO] Desvios alta confianca: 65
+2026-07-20 12:52:58 [INFO] Desvios baixa confianca: 0
+2026-07-20 12:52:58 [INFO] Sem historico suficiente: 0
+2026-07-20 12:52:58 [INFO] CSV guardado: C:\Users\anaca\OneDrive\Ambiente de Trabalho\Tese\ts-anomaly-detection-dissertation\results\agua\realtime\alerts\analise_agua_2026-05-06.csv
+2026-07-20 12:52:58 [INFO] 
+2026-07-20 12:52:58 [INFO] ANALISE DE AGUA - 2026-05-07 (dia util)
+2026-07-20 12:52:58 [INFO] Contadores com dados: 425
+2026-07-20 12:52:58 [INFO] Pontos contador/hora: 9067
+2026-07-20 12:53:16 [INFO] Normais: 8982
+2026-07-20 12:53:16 [INFO] Desvios alta confianca: 72
+2026-07-20 12:53:16 [INFO] Desvios baixa confianca: 0
+2026-07-20 12:53:16 [INFO] Sem historico suficiente: 13
+2026-07-20 12:53:16 [INFO] CSV guardado: C:\Users\anaca\OneDrive\Ambiente de Trabalho\Tese\ts-anomaly-detection-dissertation\results\agua\realtime\alerts\analise_agua_2026-05-07.csv
+2026-07-20 12:53:17 [INFO] 
+2026-07-20 12:53:17 [INFO] ANALISE DE AGUA - 2026-05-08 (dia util)
+2026-07-20 12:53:17 [INFO] Contadores com dados: 420
+2026-07-20 12:53:17 [INFO] Pontos contador/hora: 9182
+2026-07-20 12:53:42 [INFO] Normais: 9072
+2026-07-20 12:53:42 [INFO] Desvios alta confianca: 94
+2026-07-20 12:53:42 [INFO] Desvios baixa confianca: 0
+2026-07-20 12:53:42 [INFO] Sem historico suficiente: 16
+2026-07-20 12:53:42 [INFO] CSV guardado: C:\Users\anaca\OneDrive\Ambiente de Trabalho\Tese\ts-anomaly-detection-dissertation\results\agua\realtime\alerts\analise_agua_2026-05-08.csv
+2026-07-20 12:53:43 [INFO] 
+2026-07-20 12:53:43 [INFO] ANALISE DE AGUA - 2026-05-09 (fim semana)
+2026-07-20 12:53:43 [INFO] Contadores com dados: 421
+2026-07-20 12:53:43 [INFO] Pontos contador/hora: 9143
+2026-07-20 12:54:08 [INFO] Normais: 8966
+2026-07-20 12:54:08 [INFO] Desvios alta confianca: 146
+2026-07-20 12:54:08 [INFO] Desvios baixa confianca: 30
+2026-07-20 12:54:08 [INFO] Sem historico suficiente: 1
+2026-07-20 12:54:08 [INFO] CSV guardado: C:\Users\anaca\OneDrive\Ambiente de Trabalho\Tese\ts-anomaly-detection-dissertation\results\agua\realtime\alerts\analise_agua_2026-05-09.csv
+2026-07-20 12:54:08 [INFO] 
+2026-07-20 12:54:08 [INFO] ANALISE DE AGUA - 2026-05-10 (fim semana)
+2026-07-20 12:54:08 [INFO] Contadores com dados: 419
+2026-07-20 12:54:08 [INFO] Pontos contador/hora: 9032
+2026-07-20 12:54:25 [INFO] Normais: 8967
+2026-07-20 12:54:25 [INFO] Desvios alta confianca: 51
+2026-07-20 12:54:25 [INFO] Desvios baixa confianca: 11
+2026-07-20 12:54:25 [INFO] Sem historico suficiente: 3
+2026-07-20 12:54:25 [INFO] CSV guardado: C:\Users\anaca\OneDrive\Ambiente de Trabalho\Tese\ts-anomaly-detection-dissertation\results\agua\realtime\alerts\analise_agua_2026-05-10.csv
+2026-07-20 12:54:25 [INFO] 
+2026-07-20 12:54:25 [INFO] ANALISE DE AGUA - 2026-05-11 (dia util)
+2026-07-20 12:54:25 [INFO] Contadores com dados: 418
+2026-07-20 12:54:25 [INFO] Pontos contador/hora: 8897
+2026-07-20 12:54:42 [INFO] Normais: 8772
+2026-07-20 12:54:42 [INFO] Desvios alta confianca: 116
+2026-07-20 12:54:42 [INFO] Desvios baixa confianca: 0
+2026-07-20 12:54:42 [INFO] Sem historico suficiente: 9
+2026-07-20 12:54:42 [INFO] CSV guardado: C:\Users\anaca\OneDrive\Ambiente de Trabalho\Tese\ts-anomaly-detection-dissertation\results\agua\realtime\alerts\analise_agua_2026-05-11.csv
+2026-07-20 12:54:42 [INFO] 
+2026-07-20 12:54:42 [INFO] ANALISE DE AGUA - 2026-05-12 (dia util)
+2026-07-20 12:54:42 [INFO] Contadores com dados: 420
+2026-07-20 12:54:42 [INFO] Pontos contador/hora: 9047
+2026-07-20 12:55:00 [INFO] Normais: 8946
+2026-07-20 12:55:00 [INFO] Desvios alta confianca: 101
+2026-07-20 12:55:00 [INFO] Desvios baixa confianca: 0
+2026-07-20 12:55:00 [INFO] Sem historico suficiente: 0
+2026-07-20 12:55:00 [INFO] CSV guardado: C:\Users\anaca\OneDrive\Ambiente de Trabalho\Tese\ts-anomaly-detection-dissertation\results\agua\realtime\alerts\analise_agua_2026-05-12.csv
+2026-07-20 12:55:00 [INFO] 
+2026-07-20 12:55:00 [INFO] ANALISE DE AGUA - 2026-05-13 (dia util)
+2026-07-20 12:55:00 [INFO] Contadores com dados: 419
+2026-07-20 12:55:00 [INFO] Pontos contador/hora: 8752
+2026-07-20 12:55:17 [INFO] Normais: 8690
+2026-07-20 12:55:17 [INFO] Desvios alta confianca: 61
+2026-07-20 12:55:17 [INFO] Desvios baixa confianca: 0
+2026-07-20 12:55:17 [INFO] Sem historico suficiente: 1
+2026-07-20 12:55:17 [INFO] CSV guardado: C:\Users\anaca\OneDrive\Ambiente de Trabalho\Tese\ts-anomaly-detection-dissertation\results\agua\realtime\alerts\analise_agua_2026-05-13.csv
+2026-07-20 12:55:17 [INFO] 
+2026-07-20 12:55:17 [INFO] ANALISE DE AGUA - 2026-05-14 (dia util)
+2026-07-20 12:55:17 [INFO] Contadores com dados: 399
+2026-07-20 12:55:17 [INFO] Pontos contador/hora: 8581
+2026-07-20 12:55:33 [INFO] Normais: 8499
+2026-07-20 12:55:33 [INFO] Desvios alta confianca: 73
+2026-07-20 12:55:33 [INFO] Desvios baixa confianca: 1
+2026-07-20 12:55:33 [INFO] Sem historico suficiente: 8
+2026-07-20 12:55:33 [INFO] CSV guardado: C:\Users\anaca\OneDrive\Ambiente de Trabalho\Tese\ts-anomaly-detection-dissertation\results\agua\realtime\alerts\analise_agua_2026-05-14.csv
+2026-07-20 12:55:33 [INFO] 
+2026-07-20 12:55:33 [INFO] ANALISE DE AGUA - 2026-05-15 (dia util)
+2026-07-20 12:55:33 [INFO] Contadores com dados: 398
+2026-07-20 12:55:33 [INFO] Pontos contador/hora: 8583
+2026-07-20 12:55:50 [INFO] Normais: 8497
+2026-07-20 12:55:50 [INFO] Desvios alta confianca: 86
+2026-07-20 12:55:50 [INFO] Desvios baixa confianca: 0
+2026-07-20 12:55:50 [INFO] Sem historico suficiente: 0
+2026-07-20 12:55:50 [INFO] CSV guardado: C:\Users\anaca\OneDrive\Ambiente de Trabalho\Tese\ts-anomaly-detection-dissertation\results\agua\realtime\alerts\analise_agua_2026-05-15.csv
+2026-07-20 12:55:50 [INFO] 
+2026-07-20 12:55:50 [INFO] ANALISE DE AGUA - 2026-05-16 (fim semana)
+2026-07-20 12:55:50 [INFO] Contadores com dados: 399
+2026-07-20 12:55:50 [INFO] Pontos contador/hora: 8615
+2026-07-20 12:56:07 [INFO] Normais: 8516
+2026-07-20 12:56:07 [INFO] Desvios alta confianca: 93
+2026-07-20 12:56:07 [INFO] Desvios baixa confianca: 6
+2026-07-20 12:56:07 [INFO] Sem historico suficiente: 0
+2026-07-20 12:56:07 [INFO] CSV guardado: C:\Users\anaca\OneDrive\Ambiente de Trabalho\Tese\ts-anomaly-detection-dissertation\results\agua\realtime\alerts\analise_agua_2026-05-16.csv
+2026-07-20 12:56:07 [INFO] 
+2026-07-20 12:56:07 [INFO] ANALISE DE AGUA - 2026-05-17 (fim semana)
+2026-07-20 12:56:07 [INFO] Contadores com dados: 397
+2026-07-20 12:56:07 [INFO] Pontos contador/hora: 8709
+2026-07-20 12:56:24 [INFO] Normais: 8637
+2026-07-20 12:56:24 [INFO] Desvios alta confianca: 63
+2026-07-20 12:56:24 [INFO] Desvios baixa confianca: 9
+2026-07-20 12:56:24 [INFO] Sem historico suficiente: 0
+2026-07-20 12:56:25 [INFO] CSV guardado: C:\Users\anaca\OneDrive\Ambiente de Trabalho\Tese\ts-anomaly-detection-dissertation\results\agua\realtime\alerts\analise_agua_2026-05-17.csv
+2026-07-20 12:56:25 [INFO] 
+2026-07-20 12:56:25 [INFO] ANALISE DE AGUA - 2026-05-18 (dia util)
+2026-07-20 12:56:25 [INFO] Contadores com dados: 400
+2026-07-20 12:56:25 [INFO] Pontos contador/hora: 8807
+2026-07-20 12:56:42 [INFO] Normais: 8717
+2026-07-20 12:56:42 [INFO] Desvios alta confianca: 90
+2026-07-20 12:56:42 [INFO] Desvios baixa confianca: 0
+2026-07-20 12:56:42 [INFO] Sem historico suficiente: 0
+2026-07-20 12:56:42 [INFO] CSV guardado: C:\Users\anaca\OneDrive\Ambiente de Trabalho\Tese\ts-anomaly-detection-dissertation\results\agua\realtime\alerts\analise_agua_2026-05-18.csv
+2026-07-20 12:56:42 [INFO] 
+2026-07-20 12:56:42 [INFO] ANALISE DE AGUA - 2026-05-19 (dia util)
+2026-07-20 12:56:42 [INFO] Contadores com dados: 360
+2026-07-20 12:56:42 [INFO] Pontos contador/hora: 381
+2026-07-20 12:56:43 [INFO] Normais: 376
+2026-07-20 12:56:43 [INFO] Desvios alta confianca: 5
+2026-07-20 12:56:43 [INFO] Desvios baixa confianca: 0
+2026-07-20 12:56:43 [INFO] Sem historico suficiente: 0
+2026-07-20 12:56:43 [INFO] CSV guardado: C:\Users\anaca\OneDrive\Ambiente de Trabalho\Tese\ts-anomaly-detection-dissertation\results\agua\realtime\alerts\analise_agua_2026-05-19.csv
+2026-07-20 12:56:44 [INFO] 
+2026-07-20 12:56:44 [INFO] ANALISE DE AGUA - 2026-05-20 (dia util)
+2026-07-20 12:56:44 [INFO] Contadores com dados: 1
+2026-07-20 12:56:44 [INFO] Pontos contador/hora: 20
+2026-07-20 12:56:44 [INFO] Normais: 20
+2026-07-20 12:56:44 [INFO] Desvios alta confianca: 0
+2026-07-20 12:56:44 [INFO] Desvios baixa confianca: 0
+2026-07-20 12:56:44 [INFO] Sem historico suficiente: 0
+2026-07-20 12:56:44 [INFO] CSV guardado: C:\Users\anaca\OneDrive\Ambiente de Trabalho\Tese\ts-anomaly-detection-dissertation\results\agua\realtime\alerts\analise_agua_2026-05-20.csv
+2026-07-20 12:56:44 [INFO] 
+2026-07-20 12:56:44 [INFO] ANALISE DE AGUA - 2026-05-21 (dia util)
+2026-07-20 12:56:44 [INFO] Contadores com dados: 1
+2026-07-20 12:56:44 [INFO] Pontos contador/hora: 24
+2026-07-20 12:56:44 [INFO] Normais: 24
+2026-07-20 12:56:44 [INFO] Desvios alta confianca: 0
+2026-07-20 12:56:44 [INFO] Desvios baixa confianca: 0
+2026-07-20 12:56:44 [INFO] Sem historico suficiente: 0
+2026-07-20 12:56:44 [INFO] CSV guardado: C:\Users\anaca\OneDrive\Ambiente de Trabalho\Tese\ts-anomaly-detection-dissertation\results\agua\realtime\alerts\analise_agua_2026-05-21.csv
+2026-07-20 12:56:44 [INFO] 
+2026-07-20 12:56:44 [INFO] ANALISE DE AGUA - 2026-05-22 (dia util)
+2026-07-20 12:56:44 [INFO] Contadores com dados: 1
+2026-07-20 12:56:44 [INFO] Pontos contador/hora: 1
+2026-07-20 12:56:44 [INFO] Normais: 1
+2026-07-20 12:56:44 [INFO] Desvios alta confianca: 0
+2026-07-20 12:56:44 [INFO] Desvios baixa confianca: 0
+2026-07-20 12:56:44 [INFO] Sem historico suficiente: 0
+2026-07-20 12:56:44 [INFO] CSV guardado: C:\Users\anaca\OneDrive\Ambiente de Trabalho\Tese\ts-anomaly-detection-dissertation\results\agua\realtime\alerts\analise_agua_2026-05-22.csv
+2026-07-20 12:56:44 [INFO] 
+2026-07-20 12:56:44 [INFO] Concluido em 919.3s. Ficheiros gerados: 22
