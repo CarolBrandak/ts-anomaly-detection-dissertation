@@ -10,9 +10,9 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
 <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/pt.js"></script>
-<link rel="stylesheet" href="dashboard.css">
+<link rel="stylesheet" href="dashboard.css?v=20260720">
 </head>
-<body>
+<body data-dataset="energia">
 
 <header class="top">
   <div class="top-inner">
@@ -147,6 +147,13 @@
         <p id="srcAnalise">Retrospetiva: <code>—</code></p>
         <p id="srcPrev">Previsão: <code>—</code></p>
       </div>
+      <div class="energy-only">
+        <h5>Explorador PCA</h5>
+        <p>Consulta os clusters historicos dos CPEs com base no perfil horario medio de consumo.</p>
+        <a class="footer-link" href="../results/energia/interactive_pca_clusters.html" target="_blank" rel="noopener">
+          Abrir Explorador PCA
+        </a>
+      </div>
     </div>
   </footer>
 
@@ -154,6 +161,6 @@
 
 </div>
 
-<script src="dashboard.js?v=20260717"></script>
+<script src="dashboard.js?v=20260720"></script>
 </body>
 </html>

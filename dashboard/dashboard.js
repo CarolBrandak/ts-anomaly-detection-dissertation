@@ -122,6 +122,7 @@ function applyDatasetUI(){
     if(el) el.textContent = text;
   });
   document.title = `Monitorização de Consumo · ${cfg.label} · CMMaia`;
+  document.body.dataset.dataset = ACTIVE_DATASET;
   document.body.classList.toggle("sem-previsao", !cfg.hasPrediction);
   document.querySelectorAll(".dataset-btn").forEach(btn=>{
     const active = btn.dataset.dataset === ACTIVE_DATASET;
