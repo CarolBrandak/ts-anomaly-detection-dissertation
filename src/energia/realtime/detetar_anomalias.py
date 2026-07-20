@@ -22,6 +22,7 @@ from pathlib import Path
 from typing import Optional
 
 import holidays
+import joblib
 import numpy as np
 import pandas as pd
 
@@ -32,6 +33,7 @@ if str(SRC_ROOT) not in sys.path:
 from config.paths import (
     RESULTS_DIR, CLUSTERING_DIR, REALTIME_DIR, ALERTS_DIR, PLOTS_DIR,
     LOGS_DIR, PREDICTIONS_DIR, ANALYSIS_DIR, CLUSTERS_PATH, ZIP_FALLBACK_PATH,
+    RESULTS_MODELS_DIR,
 )
 from energia.data.baze_loader import carregar_ontem, CPES_CONFIG
 
@@ -52,6 +54,9 @@ STD_ABSOLUTO         = 0.3   # piso absoluto para evitar div/0
 TIPO_CONSUMO         = "energia"
 BASELINE_WINDOW_DAYS = 60    # janela móvel para captar sazonalidade
 MIN_HORAS_DIA_COMPLETO = 18  # evita escolher dias ainda quase vazios
+FEATURE_COLS_CLUSTER = [f"f{i+1:02d}_pct_hora_{i:02d}" for i in range(24)]
+MIN_DIAS_CLUSTER_ESTIMADO = 2
+MIN_HORAS_CLUSTER_ESTIMADO = 12
 
 
 class Cor:
@@ -80,6 +85,7 @@ class ResultadoCPE:
     data:             date
     hora:             int
     cluster:          Optional[int]
+    cluster_origem:   str
     tipo_dia:         str
     consumo_real:     float
     consumo_esperado: float
@@ -225,16 +231,126 @@ def carregar_dados(modo: str, logger: logging.Logger, usar_cache: bool = False) 
     return df.sort_values(["CPE", "data", "hora"]).reset_index(drop=True)
 
 
-def carregar_clusters(logger: logging.Logger) -> dict:
+def carregar_clusters(logger: logging.Logger) -> tuple[dict[str, int], dict[str, str], pd.DataFrame]:
     if not CLUSTERS_PATH.exists():
         logger.info(f"  {Cor.AMARELO}Sem ficheiro de clusters — "
                     f"análise sem essa informação de contexto.{Cor.RESET}")
-        return {}
+        return {}, {}, pd.DataFrame()
 
-    clusters = pd.read_csv(CLUSTERS_PATH, index_col=0)
-    clusters = clusters[clusters["cluster"] != "outlier"].copy()
+    clusters_raw = pd.read_csv(CLUSTERS_PATH, index_col=0)
+    clusters = clusters_raw.copy()
+    clusters["cluster"] = pd.to_numeric(clusters["cluster"], errors="coerce")
+    clusters = clusters.dropna(subset=["cluster"]).copy()
     clusters["cluster"] = clusters["cluster"].astype(int)
-    return clusters["cluster"].to_dict()
+    cluster_map = clusters["cluster"].to_dict()
+    cluster_origem = {cpe: "historico" for cpe in cluster_map}
+    return cluster_map, cluster_origem, clusters_raw
+
+
+def _perfil_cluster_a_partir_features(
+    cpe: str, clusters_raw: pd.DataFrame
+) -> Optional[np.ndarray]:
+    if clusters_raw.empty or cpe not in clusters_raw.index:
+        return None
+    if not set(FEATURE_COLS_CLUSTER).issubset(clusters_raw.columns):
+        return None
+    valores = clusters_raw.loc[cpe, FEATURE_COLS_CLUSTER].astype(float).to_numpy()
+    if not np.isfinite(valores).all() or valores.sum() <= 0:
+        return None
+    return valores
+
+
+def _perfil_cluster_a_partir_historico(
+    df_cpe: pd.DataFrame, data_alvo: date
+) -> Optional[np.ndarray]:
+    janela_inicio = data_alvo - timedelta(days=BASELINE_WINDOW_DAYS)
+    df_hist = df_cpe[
+        (df_cpe["data"] < data_alvo)
+        & (df_cpe["data"] >= janela_inicio)
+    ]
+    if df_hist["data"].nunique() < MIN_DIAS_CLUSTER_ESTIMADO:
+        return None
+    if df_hist["hora"].nunique() < MIN_HORAS_CLUSTER_ESTIMADO:
+        return None
+
+    perfil = (
+        df_hist.groupby("hora")["PotActiva"]
+        .sum()
+        .reindex(range(24), fill_value=0.0)
+        .astype(float)
+    )
+    total = float(perfil.sum())
+    if total <= 0:
+        return None
+    return (perfil / total * 100).to_numpy()
+
+
+def estimar_clusters_em_falta(
+    cpes_com_dados,
+    grupos: dict[str, pd.DataFrame],
+    data_alvo: date,
+    cluster_map: dict[str, int],
+    cluster_origem: dict[str, str],
+    clusters_raw: pd.DataFrame,
+    logger: logging.Logger,
+) -> None:
+    candidatos = [cpe for cpe in cpes_com_dados if cpe not in cluster_map]
+    if not candidatos:
+        return
+
+    kmeans_path = RESULTS_MODELS_DIR / "kmeans.pkl"
+    if not kmeans_path.exists():
+        logger.info(f"  {Cor.AMARELO}Sem modelo K-Means para estimar clusters em falta.{Cor.RESET}")
+        return
+
+    try:
+        kmeans = joblib.load(kmeans_path)
+    except Exception as e:
+        logger.warning(f"  {Cor.AMARELO}Nao foi possivel carregar K-Means: {e}{Cor.RESET}")
+        return
+
+    if getattr(kmeans, "n_features_in_", 24) != 24:
+        logger.warning(f"  {Cor.AMARELO}Modelo K-Means incompativel para perfis de 24 horas.{Cor.RESET}")
+        return
+
+    n_estimados = 0
+    n_sem_perfil = 0
+    por_cluster: dict[int, int] = {}
+
+    for cpe in candidatos:
+        perfil = _perfil_cluster_a_partir_features(cpe, clusters_raw)
+        origem = "estimado_features"
+
+        if perfil is None:
+            df_cpe = grupos.get(cpe)
+            perfil = _perfil_cluster_a_partir_historico(df_cpe, data_alvo) if df_cpe is not None else None
+            origem = "estimado_historico"
+
+        if perfil is None:
+            cluster_origem[cpe] = "sem_cluster"
+            n_sem_perfil += 1
+            continue
+
+        entrada = pd.DataFrame([perfil], columns=FEATURE_COLS_CLUSTER)
+        cluster_id = int(kmeans.predict(entrada)[0])
+        cluster_map[cpe] = cluster_id
+        cluster_origem[cpe] = origem
+        por_cluster[cluster_id] = por_cluster.get(cluster_id, 0) + 1
+        n_estimados += 1
+
+    if n_estimados:
+        detalhe = ", ".join(
+            f"cluster {cid}: {n}" for cid, n in sorted(por_cluster.items())
+        )
+        logger.info(
+            f"  {Cor.DIM}Clusters estimados:{Cor.RESET} {n_estimados} "
+            f"{Cor.DIM}({detalhe}){Cor.RESET}"
+        )
+    if n_sem_perfil:
+        logger.info(
+            f"  {Cor.DIM}Sem cluster estimado:{Cor.RESET} {n_sem_perfil} "
+            f"{Cor.DIM}(historico insuficiente){Cor.RESET}"
+        )
 
 
 # CLASSIFICAÇÃO DE TIPO DE DIA
@@ -271,6 +387,7 @@ def analisar_cpe(
     tipo_dia: str,
     df_cpe: pd.DataFrame,
     cluster_id: Optional[int],
+    cluster_origem: str,
 ) -> Optional[ResultadoCPE]:
     consumo_hora = df_cpe[
         (df_cpe["data"] == data_alvo)
@@ -326,7 +443,7 @@ def analisar_cpe(
 
     return ResultadoCPE(
         cpe=cpe, data=data_alvo, hora=hora,
-        cluster=cluster_id, tipo_dia=tipo_dia,
+        cluster=cluster_id, cluster_origem=cluster_origem, tipo_dia=tipo_dia,
         consumo_real=round(consumo_real, 2),
         consumo_esperado=round(media, 2),
         std_esperado=round(std, 2),
@@ -454,6 +571,8 @@ def _imprimir_bloco_desvio(r: ResultadoCPE, logger: logging.Logger):
     pct = ((r.consumo_real - r.consumo_esperado)
            / max(abs(r.consumo_esperado), 0.001) * 100)
     cluster_str = f"Cluster {r.cluster}" if r.cluster is not None else "sem cluster"
+    if r.cluster is not None and r.cluster_origem != "historico":
+        cluster_str += " (estimado)"
     z_str = f"{r.z_score:+.2f}" + ("⁺" if abs(r.z_real) > Z_CAP else "")
 
     logger.info(
@@ -730,6 +849,8 @@ def gerar_grafico_alerta(r: ResultadoCPE, df_cpe: pd.DataFrame) -> Path:
     pct = ((r.consumo_real - r.consumo_esperado)
            / max(abs(r.consumo_esperado), 0.001) * 100)
     cluster_str = f"Cluster {r.cluster}" if r.cluster is not None else "sem cluster"
+    if r.cluster is not None and r.cluster_origem != "historico":
+        cluster_str += " (estimado)"
     conf_str = "" if r.confianca == "alta" else "  ⚠ baixa confiança"
 
     ax.set_title(
@@ -760,6 +881,7 @@ def exportar_resultados(
         "CPE"              : r.cpe,
         "hora"             : r.hora,
         "cluster"          : r.cluster,
+        "cluster_origem"   : r.cluster_origem,
         "tipo_dia"         : r.tipo_dia,
         "consumo_real"     : r.consumo_real,
         "consumo_habitual" : r.consumo_esperado,
@@ -850,7 +972,7 @@ def main() -> int:
             df = df[df["data"] <= params.data_alvo]
 
         # 2. Clusters (contexto opcional)
-        cluster_map = carregar_clusters(logger)
+        cluster_map, cluster_origem_map, clusters_raw = carregar_clusters(logger)
 
         # 3. Tipo de dia
         data_prever = params.data_alvo + timedelta(days=1)
@@ -874,6 +996,15 @@ def main() -> int:
             return 3
 
         grupos = dict(tuple(df.groupby("CPE")))
+        estimar_clusters_em_falta(
+            cpes_com_dados=cpes_com_dados,
+            grupos=grupos,
+            data_alvo=params.data_alvo,
+            cluster_map=cluster_map,
+            cluster_origem=cluster_origem_map,
+            clusters_raw=clusters_raw,
+            logger=logger,
+        )
 
         # 4. PARTE 1 — Retrospetiva
         logger.info(f"{Cor.CIANO}→ A analisar {len(cpes_com_dados)} "
@@ -894,7 +1025,8 @@ def main() -> int:
 
             r = analisar_cpe(
                 cpe, params.data_alvo, hora, tipo_alvo, df_cpe,
-                cluster_map.get(cpe)
+                cluster_map.get(cpe),
+                cluster_origem_map.get(cpe, "sem_cluster"),
             )
             if r is None:
                 n_sem_hist += 1

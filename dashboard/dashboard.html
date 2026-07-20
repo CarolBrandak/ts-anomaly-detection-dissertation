@@ -10,7 +10,7 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
 <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/pt.js"></script>
-<link rel="stylesheet" href="dashboard.css?v=20260720">
+<link rel="stylesheet" href="dashboard.css?v=20260720-pca7">
 </head>
 <body data-dataset="energia">
 
@@ -56,6 +56,7 @@
       <a class="sub prediction-only" href="#perfil-horario">Perfil horário previsto</a>
       <a class="sub prediction-only" href="#maiores-consumos">Maiores consumos previstos</a>
       <a class="sub prediction-only" href="#tabela-previsao">Previsões por CPE</a>
+      <a class="main energy-only" href="#pca-dia">PCA do dia</a>
     </nav>
   </aside>
 
@@ -132,6 +133,22 @@
     </div>
   </section>
 
+  <section id="pca-dia" class="energy-only">
+    <div class="sec-head">
+      <span class="sec-kicker">PCA</span>
+      <h2>Exploração PCA do dia</h2>
+    </div>
+    <p class="sec-sub" id="pcaDiaSub">A carregar a projeção PCA do dia analisado...</p>
+
+    <div class="panel">
+      <div class="panel-head">
+        <h3>Perfil horário dos CPEs no dia</h3>
+        <span class="hint">cor = cluster histórico · contorno = CPE com desvio nesse dia</span>
+      </div>
+      <div class="panel-body" id="dailyPcaWrap"><div class="spinner"></div></div>
+    </div>
+  </section>
+
   <footer id="fontes">
     <div class="grid">
       <div>
@@ -161,6 +178,6 @@
 
 </div>
 
-<script src="dashboard.js?v=20260720"></script>
+<script src="dashboard.js?v=20260720-pca7"></script>
 </body>
 </html>
