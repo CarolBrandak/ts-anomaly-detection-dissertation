@@ -33,7 +33,7 @@ if str(SRC_ROOT) not in sys.path:
 from config.paths import (
     RESULTS_DIR, CLUSTERING_DIR, REALTIME_DIR, ALERTS_DIR, PLOTS_DIR,
     LOGS_DIR, PREDICTIONS_DIR, ANALYSIS_DIR, CLUSTERS_PATH, ZIP_FALLBACK_PATH,
-    RESULTS_MODELS_DIR,
+    RESULTS_MODELS_DIR, CLUSTERS_ATRIBUIDOS_PATH,
 )
 from energia.data.baze_loader import carregar_ontem, CPES_CONFIG
 
@@ -235,7 +235,9 @@ def carregar_clusters(logger: logging.Logger) -> tuple[dict[str, int], dict[str,
     if not CLUSTERS_PATH.exists():
         logger.info(f"  {Cor.AMARELO}Sem ficheiro de clusters — "
                     f"análise sem essa informação de contexto.{Cor.RESET}")
-        return {}, {}, pd.DataFrame()
+        cluster_map, cluster_origem = {}, {}
+        carregar_clusters_atribuidos(cluster_map, cluster_origem, logger)
+        return cluster_map, cluster_origem, pd.DataFrame()
 
     clusters_raw = pd.read_csv(CLUSTERS_PATH, index_col=0)
     clusters = clusters_raw.copy()
@@ -244,7 +246,83 @@ def carregar_clusters(logger: logging.Logger) -> tuple[dict[str, int], dict[str,
     clusters["cluster"] = clusters["cluster"].astype(int)
     cluster_map = clusters["cluster"].to_dict()
     cluster_origem = {cpe: "historico" for cpe in cluster_map}
+    carregar_clusters_atribuidos(cluster_map, cluster_origem, logger)
     return cluster_map, cluster_origem, clusters_raw
+
+
+def carregar_clusters_atribuidos(
+    cluster_map: dict[str, int],
+    cluster_origem: dict[str, str],
+    logger: logging.Logger,
+) -> None:
+    if not CLUSTERS_ATRIBUIDOS_PATH.exists():
+        return
+
+    try:
+        df = pd.read_csv(CLUSTERS_ATRIBUIDOS_PATH)
+    except Exception as e:
+        logger.warning(
+            f"  {Cor.AMARELO}Nao foi possivel ler clusters atribuidos: {e}{Cor.RESET}"
+        )
+        return
+
+    if not {"CPE", "cluster"}.issubset(df.columns):
+        logger.warning(
+            f"  {Cor.AMARELO}Ficheiro de clusters atribuidos sem colunas CPE/cluster.{Cor.RESET}"
+        )
+        return
+
+    df = df.dropna(subset=["CPE"]).copy()
+    df["CPE"] = df["CPE"].astype(str)
+    df["cluster"] = pd.to_numeric(df["cluster"], errors="coerce")
+    df = df.dropna(subset=["cluster"]).copy()
+    df["cluster"] = df["cluster"].astype(int)
+
+    n_lidos = 0
+    for row in df.itertuples(index=False):
+        if row.CPE in cluster_map:
+            continue
+        cluster_map[row.CPE] = int(row.cluster)
+        cluster_origem[row.CPE] = "atribuido"
+        n_lidos += 1
+
+    if n_lidos:
+        logger.info(
+            f"  {Cor.DIM}Clusters atribuidos carregados:{Cor.RESET} {n_lidos}"
+        )
+
+
+def guardar_clusters_atribuidos(novos: dict[str, int], logger: logging.Logger) -> None:
+    if not novos:
+        return
+
+    CLUSTERS_ATRIBUIDOS_PATH.parent.mkdir(parents=True, exist_ok=True)
+
+    if CLUSTERS_ATRIBUIDOS_PATH.exists():
+        try:
+            df = pd.read_csv(CLUSTERS_ATRIBUIDOS_PATH)
+        except Exception:
+            df = pd.DataFrame(columns=["CPE", "cluster"])
+    else:
+        df = pd.DataFrame(columns=["CPE", "cluster"])
+
+    if not {"CPE", "cluster"}.issubset(df.columns):
+        df = pd.DataFrame(columns=["CPE", "cluster"])
+
+    df = df[["CPE", "cluster"]].dropna(subset=["CPE"]).copy()
+    df["CPE"] = df["CPE"].astype(str)
+    df = df[~df["CPE"].isin(novos.keys())]
+    df_novos = pd.DataFrame(
+        [{"CPE": cpe, "cluster": cluster} for cpe, cluster in sorted(novos.items())]
+    )
+    df = pd.concat([df, df_novos], ignore_index=True)
+    df["cluster"] = pd.to_numeric(df["cluster"], errors="coerce").astype("Int64")
+    df = df.sort_values("CPE").reset_index(drop=True)
+    df.to_csv(CLUSTERS_ATRIBUIDOS_PATH, index=False)
+    logger.info(
+        f"  {Cor.DIM}Clusters atribuidos guardados:{Cor.RESET} "
+        f"{len(novos)} em {CLUSTERS_ATRIBUIDOS_PATH}"
+    )
 
 
 def _perfil_cluster_a_partir_features(
@@ -316,6 +394,7 @@ def estimar_clusters_em_falta(
     n_estimados = 0
     n_sem_perfil = 0
     por_cluster: dict[int, int] = {}
+    novos_atribuidos: dict[str, int] = {}
 
     for cpe in candidatos:
         perfil = _perfil_cluster_a_partir_features(cpe, clusters_raw)
@@ -336,6 +415,7 @@ def estimar_clusters_em_falta(
         cluster_map[cpe] = cluster_id
         cluster_origem[cpe] = origem
         por_cluster[cluster_id] = por_cluster.get(cluster_id, 0) + 1
+        novos_atribuidos[cpe] = cluster_id
         n_estimados += 1
 
     if n_estimados:
@@ -346,6 +426,7 @@ def estimar_clusters_em_falta(
             f"  {Cor.DIM}Clusters estimados:{Cor.RESET} {n_estimados} "
             f"{Cor.DIM}({detalhe}){Cor.RESET}"
         )
+        guardar_clusters_atribuidos(novos_atribuidos, logger)
     if n_sem_perfil:
         logger.info(
             f"  {Cor.DIM}Sem cluster estimado:{Cor.RESET} {n_sem_perfil} "
@@ -897,6 +978,8 @@ def exportar_resultados(
     } for r in resultados]
 
     df = pd.DataFrame(rows)
+    if "cluster" in df.columns:
+        df["cluster"] = pd.array(df["cluster"], dtype="Int64")
     ALERTS_DIR.mkdir(parents=True, exist_ok=True)
     out = ALERTS_DIR / nome_ficheiro_analise(data_alvo)
     df.to_csv(out, index=False)

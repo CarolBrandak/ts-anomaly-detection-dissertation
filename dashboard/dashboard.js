@@ -37,6 +37,7 @@ const DATASETS = {
       predictions: "../results/energia/realtime/predictions/previsao_energia_{d}.csv",
       pcaFeatures: "../results/energia/features/features_setA.csv",
       pcaClusters: "../results/energia/clustering/clusters_cpe.csv",
+      pcaAssignedClusters: "../results/energia/clustering/clusters_cpe_atribuidos.csv",
       pcaCoords:   "../results/energia/clustering/pca_clusters_cpe.csv"
     }
   },
@@ -595,6 +596,7 @@ function renderHourlyProfile(container, rows){
 
 let DAILY_PCA_MODEL_PROMISE = null;
 const DAILY_CLUSTER_STORAGE_KEY = "energia_daily_pca_manual_clusters_v1";
+let DAILY_PCA_FILTER = "all";
 const DAILY_CLUSTER_COLORS = {
   "0":"#4C97D4",
   "1":"#F5A623",
@@ -615,21 +617,32 @@ function writeDailyClusterOverrides(overrides){
 }
 function setDailyClusterOverride(cpe, cluster){
   const overrides = readDailyClusterOverrides();
-  if(cluster){
-    overrides[cpe] = String(cluster);
+  const normalized = normalizeCluster(cluster);
+  if(normalized && normalized !== "sem cluster"){
+    overrides[cpe] = normalized;
   }else{
     delete overrides[cpe];
   }
   writeDailyClusterOverrides(overrides);
 }
+function normalizeCluster(cluster){
+  const raw = String(cluster ?? "").trim();
+  if(!raw || raw.toLowerCase() === "nan") return "";
+  if(raw === "sem cluster") return "sem cluster";
+  if(raw.toLowerCase() === "outlier") return "outlier";
+  const numeric = Number(raw.replace(",", "."));
+  if(Number.isFinite(numeric) && Number.isInteger(numeric)) return String(numeric);
+  return raw;
+}
 function clusterLabel(cluster){
-  if(cluster === "sem cluster") return "sem cluster";
-  if(cluster === "outlier") return "outlier";
-  return `Cluster ${cluster}`;
+  const value = clusterValue(cluster);
+  if(value === "sem cluster") return "sem cluster";
+  if(value === "outlier") return "outlier";
+  return `Cluster ${value}`;
 }
 function clusterValue(cluster){
-  const value = String(cluster ?? "");
-  return value && value !== "sem cluster" && value.toLowerCase() !== "nan"
+  const value = normalizeCluster(cluster);
+  return value && value !== "sem cluster"
     ? value
     : "sem cluster";
 }
@@ -639,6 +652,56 @@ function clusterChipLabel(cluster){
 }
 function clusterColor(cluster){
   return DAILY_CLUSTER_COLORS[clusterValue(cluster)] || DAILY_CLUSTER_COLORS["sem cluster"];
+}
+function pcaClusterCountMap(points){
+  const counts = new Map();
+  points.forEach(p=>{
+    const key = clusterValue(p.cluster);
+    counts.set(key, (counts.get(key) || 0) + 1);
+  });
+  return counts;
+}
+function pcaSortedClusters(values){
+  return [...new Set(values.map(clusterValue))]
+    .filter(c=>c && c !== "sem cluster")
+    .sort((a,b)=>String(a).localeCompare(String(b), "pt", {numeric:true}));
+}
+function updateDailyPcaDescription(dateStr, points){
+  const sub = $("#pcaDiaSub");
+  if(!sub) return;
+
+  const counts = pcaClusterCountMap(points);
+  const clusters = pcaSortedClusters([...counts.keys()]);
+  const semCluster = counts.get("sem cluster") || 0;
+  const withDeviation = points.filter(p=>p.desvios > 0).length;
+  const parts = clusters.map(c=>
+    `<span class="pca-inline-count">${clusterLabel(c)}: <b>${counts.get(c) || 0}</b></span>`
+  );
+  if(semCluster){
+    parts.push(`<span class="pca-inline-count">sem cluster: <b>${semCluster}</b></span>`);
+  }
+
+  sub.innerHTML =
+    `Dia analisado: <b>${prettyDate(dateStr)}</b>. ` +
+    `${points.length} CPEs projetados; ${withDeviation} com pelo menos um desvio no dia. ` +
+    `<span class="pca-inline-counts">${parts.join(" · ")}</span>`;
+}
+function renderDailyPcaFilters(points, availableClusters){
+  const counts = pcaClusterCountMap(points);
+  const clusters = pcaSortedClusters(availableClusters);
+  const active = DAILY_PCA_FILTER === "all" ? "all" : clusterValue(DAILY_PCA_FILTER);
+  const allActive = active === "all" ? " is-active" : "";
+  const buttons = [
+    `<button type="button" class="pca-filter-btn${allActive}" data-cluster="all">Todos <b>${points.length}</b></button>`,
+    ...clusters.map(c=>{
+      const count = counts.get(c) || 0;
+      const selected = active === c ? " is-active" : "";
+      const disabled = count ? "" : " disabled";
+      return `<button type="button" class="pca-filter-btn${selected}" data-cluster="${escapeHtml(c)}"${disabled}
+          style="--cluster-color:${clusterColor(c)}">${clusterLabel(c)} <b>${count}</b></button>`;
+    })
+  ];
+  return `<div class="pca-filter-bar" aria-label="Filtrar PCA por cluster">${buttons.join("")}</div>`;
 }
 
 function dot(a,b){ return a.reduce((s,v,i)=>s+v*b[i],0); }
@@ -709,20 +772,31 @@ async function loadDailyPcaModel(){
 
   DAILY_PCA_MODEL_PROMISE = (async()=>{
     const cfg = DATASETS.energia;
-    const [featuresRes, clustersRes, coordsRes] = await Promise.all([
+    const [featuresRes, clustersRes, assignedClustersRes, coordsRes] = await Promise.all([
       fetchFixed(cfg.paths.pcaFeatures),
       fetchFixed(cfg.paths.pcaClusters),
+      fetchFixed(cfg.paths.pcaAssignedClusters),
       fetchFixed(cfg.paths.pcaCoords),
     ]);
     if(!featuresRes || !clustersRes) return null;
 
     const clusters = new Map();
     parseCSV(clustersRes.text).forEach(r=>{
-      if(r.CPE) clusters.set(r.CPE, r.cluster || "");
+      if(r.CPE) clusters.set(r.CPE, normalizeCluster(r.cluster));
     });
+    if(assignedClustersRes){
+      parseCSV(assignedClustersRes.text).forEach(r=>{
+        if(!r.CPE) return;
+        const current = normalizeCluster(clusters.get(r.CPE));
+        const assigned = normalizeCluster(r.cluster);
+        if(assigned && (!current || current === "outlier" || current === "sem cluster")){
+          clusters.set(r.CPE, assigned);
+        }
+      });
+    }
     const availableClusters = [...new Set([...clusters.values()]
-      .filter(c=>c && c !== "outlier")
-      .map(c=>String(c)))]
+      .map(normalizeCluster)
+      .filter(c=>c && c !== "outlier" && c !== "sem cluster"))]
       .sort((a,b)=>String(a).localeCompare(String(b), "pt", {numeric:true}));
 
     const featureRows = parseCSV(featuresRes.text);
@@ -736,7 +810,7 @@ async function loadDailyPcaModel(){
       .map(r=>({
         cpe: r.CPE,
         values: featureCols.map(c=>+r[c]),
-        cluster: clusters.get(r.CPE) || "",
+        cluster: normalizeCluster(clusters.get(r.CPE)),
       }))
       .filter(r=>r.values.every(v=>Number.isFinite(v)));
     if(records.length < 3) return null;
@@ -779,19 +853,18 @@ async function loadDailyPcaModel(){
 }
 function buildDailyProfiles(rows, clusterMap, overrides, availableClusters){
   const byCpe = new Map();
-  const validClusters = new Set(availableClusters.map(String));
+  const validClusters = new Set(availableClusters.map(normalizeCluster));
   rows.forEach(r=>{
     const cpe = r.CPE;
     const hora = +r.hora;
     const real = +r.consumo_real;
     if(!cpe || !Number.isInteger(hora) || hora < 0 || hora > 23 || !Number.isFinite(real)) return;
-    const rowCluster = r.cluster && String(r.cluster).toLowerCase() !== "nan" ? String(r.cluster) : "";
-    const mapCluster = clusterMap.get(cpe) || "";
+    const rowCluster = normalizeCluster(r.cluster);
+    const mapCluster = normalizeCluster(clusterMap.get(cpe));
     const rawCluster = rowCluster || mapCluster || "";
-    const baseCluster = rawCluster && String(rawCluster).toLowerCase() !== "nan"
-      ? String(rawCluster)
-      : "sem cluster";
-    const manualCluster = validClusters.has(String(overrides[cpe])) ? String(overrides[cpe]) : "";
+    const baseCluster = clusterValue(rawCluster);
+    const overrideCluster = normalizeCluster(overrides[cpe]);
+    const manualCluster = validClusters.has(overrideCluster) ? overrideCluster : "";
     const item = byCpe.get(cpe) || {
       cpe,
       horas: Array(24).fill(0),
@@ -833,7 +906,7 @@ function buildDailyProfiles(rows, clusterMap, overrides, availableClusters){
       baixa: r.baixa,
       maxAbsZ: r.maxAbsZ,
       maxZ: r.maxZ,
-      cluster: r.cluster || "sem cluster",
+      cluster: clusterValue(r.cluster),
       baseCluster: r.baseCluster,
       manualCluster: r.manualCluster,
       canEditCluster: r.canEditCluster,
@@ -880,17 +953,35 @@ async function renderPcaDia(rows, dateStr){
     ...projectVector(p.perfil, model),
   }));
 
-  const withDeviation = points.filter(p=>p.desvios > 0).length;
-  sub.innerHTML =
-    `Dia analisado: <b>${prettyDate(dateStr)}</b>. ` +
-    `${points.length} CPEs projetados; ${withDeviation} com pelo menos um desvio no dia.`;
+  wrap.dataset.dateStr = dateStr;
+  updateDailyPcaDescription(dateStr, points);
   renderDailyPcaScatter(wrap, points, model.availableClusters);
 }
 function renderDailyPcaScatter(container, points, availableClusters, selectedCpe=null){
   const W=920, H=360, padL=56, padR=24, padT=28, padB=50;
   const innerW=W-padL-padR, innerH=H-padT-padB;
   const colors = DAILY_CLUSTER_COLORS;
-  const xs = points.map(p=>p.pc1), ys = points.map(p=>p.pc2);
+  updateDailyPcaDescription(container.dataset.dateStr || "", points);
+
+  if(DAILY_PCA_FILTER !== "all" && !availableClusters.map(clusterValue).includes(clusterValue(DAILY_PCA_FILTER))){
+    DAILY_PCA_FILTER = "all";
+  }
+  const activeFilter = DAILY_PCA_FILTER === "all" ? "all" : clusterValue(DAILY_PCA_FILTER);
+  const visiblePoints = activeFilter === "all"
+    ? points
+    : points.filter(p=>clusterValue(p.cluster) === activeFilter);
+  const controls = renderDailyPcaFilters(points, availableClusters);
+
+  if(!visiblePoints.length){
+    container.innerHTML = controls + emptyMsg("Sem CPEs neste cluster para este dia.") +
+      `<div class="point-detail muted-detail">Escolhe outro filtro para ver pontos no PCA.</div>` +
+      renderDailyClusterEditor(points, availableClusters);
+    wireDailyPcaFilters(container, points, availableClusters);
+    wireDailyClusterEditor(container, points, availableClusters);
+    return;
+  }
+
+  const xs = visiblePoints.map(p=>p.pc1), ys = visiblePoints.map(p=>p.pc2);
   let xmin=Math.min(...xs), xmax=Math.max(...xs), ymin=Math.min(...ys), ymax=Math.max(...ys);
   if(xmin===xmax){ xmin-=1; xmax+=1; }
   if(ymin===ymax){ ymin-=1; ymax+=1; }
@@ -918,11 +1009,11 @@ function renderDailyPcaScatter(container, points, availableClusters, selectedCpe
     s += `<line x1="${padL}" y1="${Y(0)}" x2="${padL+innerW}" y2="${Y(0)}" stroke="var(--ink-3)" stroke-width="1.2" opacity=".55"/>`;
   }
 
-  points
-    .map((p,i)=>({p,i}))
+  visiblePoints
+    .map(p=>({p, i:points.indexOf(p)}))
     .sort((a,b)=>a.p.desvios-b.p.desvios)
     .forEach(({p,i})=>{
-      const fill = colors[p.cluster] || colors["sem cluster"];
+      const fill = colors[clusterValue(p.cluster)] || colors["sem cluster"];
       const hasDeviation = p.desvios > 0;
       const stroke = hasDeviation ? "var(--high)" : "#FFFFFF";
       const strokeW = hasDeviation ? 2.4 : 1.2;
@@ -938,22 +1029,34 @@ function renderDailyPcaScatter(container, points, availableClusters, selectedCpe
   s += `<text x="16" y="${padT+innerH/2}" font-size="11" text-anchor="middle" transform="rotate(-90 16 ${padT+innerH/2})">PC2</text>`;
   s += `</svg>`;
 
-  const clusters = [...new Set(points.map(p=>p.cluster))].sort((a,b)=>String(a).localeCompare(String(b), "pt", {numeric:true}));
+  const clusters = [...new Set(visiblePoints.map(p=>clusterValue(p.cluster)))]
+    .sort((a,b)=>String(a).localeCompare(String(b), "pt", {numeric:true}));
   const legendClusters = clusters.map(c=>
-    `<span><i style="background:${colors[c] || colors["sem cluster"]}"></i>${clusterLabel(c)}</span>`
+    `<span><i style="background:${colors[clusterValue(c)] || colors["sem cluster"]}"></i>${clusterLabel(c)}</span>`
   ).join("");
   const legend = `<div class="legend pca-legend">
       ${legendClusters}
       <span><i class="outline-dot"></i>com desvio no dia</span>
     </div>`;
-  container.innerHTML = legend + s +
+  container.innerHTML = controls + legend + s +
     `<div class="point-detail muted-detail">Clica num ponto para ver o detalhe do CPE.</div>` +
     renderDailyClusterEditor(points, availableClusters);
+  wireDailyPcaFilters(container, points, availableClusters);
   wireDailyPcaDetails(container, points, availableClusters);
   wireDailyClusterEditor(container, points, availableClusters);
-  if(selectedCpe){
+  if(selectedCpe && visiblePoints.some(p=>p.cpe === selectedCpe)){
     showDailyPcaPointDetail(container, points, availableClusters, selectedCpe);
   }
+}
+
+function wireDailyPcaFilters(container, points, availableClusters){
+  container.querySelectorAll(".pca-filter-btn").forEach(btn=>{
+    btn.addEventListener("click", ()=>{
+      if(btn.disabled) return;
+      DAILY_PCA_FILTER = btn.dataset.cluster || "all";
+      renderDailyPcaScatter(container, points, availableClusters);
+    });
+  });
 }
 
 function renderDailyPcaPointDetail(p, availableClusters){
@@ -1007,11 +1110,12 @@ function showDailyPcaPointDetail(container, points, availableClusters, cpe){
 }
 
 function applyDailyClusterManual(container, points, availableClusters, cpe, cluster){
-  const valid = new Set(availableClusters.map(String));
+  const valid = new Set(availableClusters.map(normalizeCluster));
   const point = points.find(p=>p.cpe === cpe);
   if(!point) return;
 
-  const chosen = valid.has(String(cluster)) ? String(cluster) : "";
+  const incoming = normalizeCluster(cluster);
+  const chosen = valid.has(incoming) ? incoming : "";
   setDailyClusterOverride(cpe, chosen);
   point.manualCluster = chosen;
   point.cluster = chosen || point.baseCluster;
@@ -1214,7 +1318,7 @@ function renderAlertCards(){
 function renderAlertCard(r, reincidencias, sparkHistory){
   const up = r.direcao==="acima";
   const pct = (r.real-r.hab)/Math.max(Math.abs(r.hab),0.001)*100;
-  const cl = (r.cluster && r.cluster!=="" && r.cluster.toLowerCase()!=="nan") ? `Cluster ${r.cluster}` : "sem cluster";
+  const cl = clusterLabel(r.cluster);
   const clusterChip = ACTIVE_DATASET === "energia" ? `<span class="chip">${cl}</span>` : "";
   const hourChip = r.hora===null ? "" : `<span class="chip">${String(r.hora).padStart(2,"0")}h</span>`;
   const lowc = r.confianca==="baixa" ? `<span class="chip" style="background:var(--accent-soft);color:var(--accent)">baixa confiança</span>` : "";

@@ -209,11 +209,25 @@
   .chart text{font-family:var(--font-mono);fill:var(--ink-3)}
   .axis-line{stroke:var(--line-2);stroke-width:1}
   .grid-line{stroke:var(--line);stroke-width:1;stroke-dasharray:2 4}
+  .pca-inline-counts{display:inline-flex;gap:8px;flex-wrap:wrap;margin-left:4px}
+  .pca-inline-count{white-space:nowrap;color:var(--ink-3)}
+  .pca-inline-count b{color:var(--ink);font-weight:800}
   .legend{display:flex;gap:18px;flex-wrap:wrap;font-size:13px;color:var(--ink-2);
     font-weight:500;padding:0 4px 4px}
   .legend span{display:inline-flex;align-items:center;gap:7px}
   .legend i{width:14px;height:3px;border-radius:2px;display:inline-block}
   .legend i.dotline{height:0;border-top:2px dashed currentColor;background:none}
+  .pca-filter-bar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:0 0 12px}
+  .pca-filter-btn{border:1px solid var(--line-2);background:var(--paper-2);color:var(--ink-3);
+    border-radius:8px;padding:7px 10px;font-size:12px;font-weight:800;text-transform:uppercase;
+    letter-spacing:.04em;cursor:pointer}
+  .pca-filter-btn b{font-family:var(--font-mono);font-size:13px;color:var(--ink)}
+  .pca-filter-btn:hover:not(:disabled){border-color:var(--cluster-color,var(--accent));
+    color:var(--cluster-color,var(--accent))}
+  .pca-filter-btn.is-active{background:color-mix(in srgb,var(--cluster-color,var(--accent)) 13%,#fff);
+    border-color:color-mix(in srgb,var(--cluster-color,var(--accent)) 45%,var(--line));
+    color:color-mix(in srgb,var(--cluster-color,var(--accent)) 78%,#111827)}
+  .pca-filter-btn:disabled{opacity:.45;cursor:not-allowed}
   .clickable-point{cursor:pointer;outline:none}
   .clickable-point:hover{filter:drop-shadow(0 4px 8px rgba(18,24,38,.18))}
   .clickable-point.is-selected{stroke:var(--ink)!important;stroke-width:3!important}
