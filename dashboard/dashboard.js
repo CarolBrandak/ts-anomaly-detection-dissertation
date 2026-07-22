@@ -168,6 +168,40 @@ function splitLine(line){
   }
   out.push(cur); return out;
 }
+function csvCell(value){
+  const text = String(value ?? "");
+  return /[",\r\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
+}
+async function saveTextAsFile(filename, text){
+  if(window.showSaveFilePicker){
+    try{
+      const handle = await window.showSaveFilePicker({
+        suggestedName: filename,
+        types: [{
+          description: "CSV",
+          accept: {"text/csv": [".csv"]},
+        }],
+      });
+      const writable = await handle.createWritable();
+      await writable.write(text);
+      await writable.close();
+      return "saved";
+    }catch(e){
+      if(e && e.name === "AbortError") return "cancelled";
+    }
+  }
+
+  const blob = new Blob([text], {type:"text/csv;charset=utf-8"});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+  return "download";
+}
 
 /* Procura o ficheiro mais recente recuando dia a dia */
 async function fetchByDate(template, dateStr){
@@ -596,8 +630,9 @@ function renderHourlyProfile(container, rows){
 
 let DAILY_PCA_MODEL_PROMISE = null;
 const DAILY_CLUSTER_STORAGE_KEY = "energia_daily_pca_manual_clusters_v1";
-let DAILY_PCA_CLUSTER_FILTER = "all";
-let DAILY_PCA_DEVIATION_FILTER = "all";
+let DAILY_PCA_CLUSTER_FILTERS = null;
+let DAILY_PCA_DEVIATION_FILTERS = null;
+let DAILY_PCA_CLUSTER_EXPORT_BASE = new Map();
 const DAILY_CLUSTER_COLORS = {
   "0":"#4C97D4",
   "1":"#F5A623",
@@ -615,6 +650,9 @@ function readDailyClusterOverrides(){
 }
 function writeDailyClusterOverrides(overrides){
   localStorage.setItem(DAILY_CLUSTER_STORAGE_KEY, JSON.stringify(overrides));
+}
+function countDailyClusterOverrides(){
+  return Object.keys(readDailyClusterOverrides()).length;
 }
 function setDailyClusterOverride(cpe, cluster){
   const overrides = readDailyClusterOverrides();
@@ -687,75 +725,112 @@ function updateDailyPcaDescription(dateStr, points){
     `${points.length} CPEs projetados; ${withDeviation} com pelo menos um desvio no dia. ` +
     `<span class="pca-inline-counts">${parts.join(" · ")}</span>`;
 }
-function resolveDailyPcaClusterFilter(points, availableClusters){
-  const raw = DAILY_PCA_CLUSTER_FILTER || "all";
-  if(raw === "all") return "all";
-  if(raw === "sem-cluster"){
-    return points.some(p=>clusterValue(p.cluster) === "sem cluster") ? "sem-cluster" : "all";
-  }
-
-  const normalized = clusterValue(raw);
-  const validClusters = availableClusters.map(clusterValue);
-  return validClusters.includes(normalized) ? normalized : "all";
+function normalizeDailyPcaFilterValue(value){
+  if(!value || value === "all") return "";
+  if(value === "sem-cluster") return "sem cluster";
+  return clusterValue(value);
 }
-function dailyPcaEmptyText(activeClusterFilter, deviationFilter){
-  if(deviationFilter === "with"){
-    if(activeClusterFilter === "all") return "Sem CPEs com desvio neste dia.";
-    if(activeClusterFilter === "sem-cluster") return "Sem CPEs sem cluster com desvio neste dia.";
-    return `Sem CPEs do ${clusterLabel(activeClusterFilter)} com desvio neste dia.`;
+function dailyPcaAvailableClusterFilters(points, availableClusters){
+  const options = pcaSortedClusters(availableClusters)
+    .filter(c=>points.some(p=>clusterValue(p.cluster) === c));
+  if(points.some(p=>clusterValue(p.cluster) === "sem cluster")){
+    options.push("sem cluster");
   }
-  if(deviationFilter === "without"){
-    if(activeClusterFilter === "all") return "Sem CPEs sem desvio neste dia.";
-    if(activeClusterFilter === "sem-cluster") return "Sem CPEs sem cluster e sem desvio neste dia.";
-    return `Sem CPEs do ${clusterLabel(activeClusterFilter)} sem desvio neste dia.`;
+  return options;
+}
+function resolveDailyPcaClusterFilters(points, availableClusters){
+  const validClusters = dailyPcaAvailableClusterFilters(points, availableClusters);
+  if(DAILY_PCA_CLUSTER_FILTERS === null) return validClusters;
+  const validSet = new Set(validClusters);
+  return [...new Set(DAILY_PCA_CLUSTER_FILTERS.map(normalizeDailyPcaFilterValue))]
+    .filter(c=>c && validSet.has(c));
+}
+function dailyPcaAvailableDeviationFilters(points){
+  const options = [];
+  if(points.some(p=>p.desvios > 0)) options.push("with");
+  if(points.some(p=>p.desvios === 0)) options.push("without");
+  return options;
+}
+function resolveDailyPcaDeviationFilters(points){
+  const validFilters = dailyPcaAvailableDeviationFilters(points);
+  if(DAILY_PCA_DEVIATION_FILTERS === null) return validFilters;
+  const validSet = new Set(validFilters);
+  return [...new Set(DAILY_PCA_DEVIATION_FILTERS)]
+    .filter(f=>validSet.has(f));
+}
+function dailyPcaClusterSelectionText(activeClusterFilters, availableClusterFilters){
+  if(!activeClusterFilters.length) return "nenhum cluster selecionado";
+  if(activeClusterFilters.length === availableClusterFilters.length) return "todos os clusters";
+  if(activeClusterFilters.length === 1){
+    const c = activeClusterFilters[0];
+    return c === "sem cluster" ? "sem cluster" : clusterLabel(c);
   }
-  if(activeClusterFilter === "sem-cluster") return "Sem CPEs sem cluster neste dia.";
-  return "Sem CPEs neste cluster para este dia.";
+  return "os clusters selecionados";
+}
+function pcaFilterText(label, count){
+  return `${label} <span class="pca-filter-pipe">|</span> <b>${count}</b>`;
+}
+function dailyPcaEmptyText(activeClusterFilters, activeDeviationFilters, availableClusterFilters){
+  if(!activeDeviationFilters.length) return "Sem filtros de desvio selecionados.";
+  const alvo = dailyPcaClusterSelectionText(activeClusterFilters, availableClusterFilters);
+  return `Sem CPEs em ${alvo} para este dia.`;
+}
+function dailyPcaMatchesCluster(point, activeClusterFilters){
+  return activeClusterFilters.includes(clusterValue(point.cluster));
+}
+function dailyPcaMatchesDeviation(point, activeDeviationFilters){
+  return (point.desvios > 0 && activeDeviationFilters.includes("with"))
+    || (point.desvios === 0 && activeDeviationFilters.includes("without"));
 }
 function renderDailyPcaFilters(
   points,
   availableClusters,
-  activeClusterFilter=DAILY_PCA_CLUSTER_FILTER,
-  deviationFilter=DAILY_PCA_DEVIATION_FILTER
+  activeClusterFilters=DAILY_PCA_CLUSTER_FILTERS,
+  activeDeviationFilters=DAILY_PCA_DEVIATION_FILTERS
 ){
-  const pointsForCounts = deviationFilter === "with"
-    ? points.filter(p=>p.desvios > 0)
-    : deviationFilter === "without"
-      ? points.filter(p=>p.desvios === 0)
-      : points;
-  const counts = pcaClusterCountMap(pointsForCounts);
-  const totalCounts = pcaClusterCountMap(points);
-  const clusters = pcaSortedClusters(availableClusters);
-  const active = activeClusterFilter === "all" || activeClusterFilter === "sem-cluster"
-    ? activeClusterFilter
-    : clusterValue(activeClusterFilter);
-  const withDeviation = points.filter(p=>p.desvios > 0).length;
-  const withoutDeviation = points.length - withDeviation;
-  const semCluster = counts.get("sem cluster") || 0;
-  const semClusterTotal = totalCounts.get("sem cluster") || 0;
-  const allActive = active === "all" ? " is-active" : "";
-  const deviationsActive = deviationFilter === "with" ? " is-active" : "";
-  const withoutDeviationsActive = deviationFilter === "without" ? " is-active" : "";
-  const buttons = [
-    `<button type="button" class="pca-filter-btn${allActive}" data-filter="all">Todos <b>${points.length}</b></button>`,
-    `<button type="button" class="pca-filter-btn${deviationsActive}" data-filter="desvios"${withDeviation ? "" : " disabled"}
-        style="--cluster-color:var(--high)">Com desvios <b>${withDeviation}</b></button>`,
-    `<button type="button" class="pca-filter-btn${withoutDeviationsActive}" data-filter="sem-desvios"${withoutDeviation ? "" : " disabled"}
-        style="--cluster-color:var(--ok)">Sem desvios <b>${withoutDeviation}</b></button>`,
-    ...clusters.map(c=>{
+  const clusterOptions = dailyPcaAvailableClusterFilters(points, availableClusters);
+  const deviationOptions = dailyPcaAvailableDeviationFilters(points);
+  activeClusterFilters = activeClusterFilters === null ? clusterOptions : activeClusterFilters;
+  activeDeviationFilters = activeDeviationFilters === null ? deviationOptions : activeDeviationFilters;
+  const pointsForClusterCounts = points.filter(p=>dailyPcaMatchesDeviation(p, activeDeviationFilters));
+  const pointsForStatusCounts = points.filter(p=>dailyPcaMatchesCluster(p, activeClusterFilters));
+  const counts = pcaClusterCountMap(pointsForClusterCounts);
+  const withDeviation = pointsForStatusCounts.filter(p=>p.desvios > 0).length;
+  const withoutDeviation = pointsForStatusCounts.length - withDeviation;
+  const clusterButtons = clusterOptions.map(c=>{
       const count = counts.get(c) || 0;
-      const selected = active === c ? " is-active" : "";
-      const disabled = totalCounts.get(c) ? "" : " disabled";
-      return `<button type="button" class="pca-filter-btn${selected}" data-filter="${escapeHtml(c)}"${disabled}
-          style="--cluster-color:${clusterColor(c)}">${clusterLabel(c)} <b>${count}</b></button>`;
-    })
-  ];
-  if(semClusterTotal){
-    const selected = active === "sem-cluster" ? " is-active" : "";
-    buttons.push(`<button type="button" class="pca-filter-btn${selected}" data-filter="sem-cluster"
-        style="--cluster-color:${clusterColor("sem cluster")}">Sem cluster <b>${semCluster}</b></button>`);
-  }
-  return `<div class="pca-filter-bar" aria-label="Filtrar PCA do dia">${buttons.join("")}</div>`;
+      const selected = activeClusterFilters.includes(c) ? " is-active" : "";
+      const dataFilter = c === "sem cluster" ? "sem-cluster" : c;
+      return `<button type="button" class="pca-filter-btn${selected}" data-filter="${escapeHtml(dataFilter)}"
+          style="--cluster-color:${clusterColor(c)}">${pcaFilterText(clusterLabel(c), count)}</button>`;
+    });
+
+  const statusButtons = [
+    deviationOptions.includes("with")
+      ? `<button type="button" class="pca-filter-btn${activeDeviationFilters.includes("with") ? " is-active" : ""}" data-status="with"
+          style="--cluster-color:var(--high)">${pcaFilterText("Com desvios", withDeviation)}</button>`
+      : "",
+    deviationOptions.includes("without")
+      ? `<button type="button" class="pca-filter-btn${activeDeviationFilters.includes("without") ? " is-active" : ""}" data-status="without"
+          style="--cluster-color:var(--ok)">${pcaFilterText("Sem desvios", withoutDeviation)}</button>`
+      : ""
+  ].filter(Boolean);
+
+  return `<div class="pca-filter-panel" aria-label="Filtrar PCA do dia">
+    <div class="pca-filter-group">
+      <div class="pca-filter-head">
+        <span class="pca-filter-label">Clusters</span>
+        <button type="button" class="pca-filter-action" data-select-all="clusters">Selecionar todos</button>
+      </div>
+      <div class="pca-filter-bar">${clusterButtons.join("")}</div>
+    </div>
+    <div class="pca-filter-group">
+      <div class="pca-filter-head">
+        <span class="pca-filter-label">Desvios</span>
+      </div>
+      <div class="pca-filter-bar">${statusButtons.join("")}</div>
+    </div>
+  </div>`;
 }
 
 function dot(a,b){ return a.reduce((s,v,i)=>s+v*b[i],0); }
@@ -835,15 +910,20 @@ async function loadDailyPcaModel(){
     if(!featuresRes || !clustersRes) return null;
 
     const clusters = new Map();
+    const historicalClusters = new Map();
+    const assignedClusters = new Map();
     parseCSV(clustersRes.text).forEach(r=>{
-      if(r.CPE) clusters.set(r.CPE, normalizeCluster(r.cluster));
+      if(!r.CPE) return;
+      const cluster = normalizeCluster(r.cluster);
+      clusters.set(r.CPE, cluster);
+      historicalClusters.set(r.CPE, cluster);
     });
     if(assignedClustersRes){
       parseCSV(assignedClustersRes.text).forEach(r=>{
         if(!r.CPE) return;
-        const current = normalizeCluster(clusters.get(r.CPE));
         const assigned = normalizeCluster(r.cluster);
-        if(assigned && (!current || current === "outlier" || current === "sem cluster")){
+        if(assigned && assigned !== "outlier" && assigned !== "sem cluster"){
+          assignedClusters.set(r.CPE, assigned);
           clusters.set(r.CPE, assigned);
         }
       });
@@ -900,7 +980,7 @@ async function loadDailyPcaModel(){
       if(correlation(common2, ref2) < 0) pc2 = pc2.map(v=>-v);
     }
 
-    return {mean, pc1, pc2, clusters, availableClusters};
+    return {mean, pc1, pc2, clusters, historicalClusters, assignedClusters, availableClusters};
   })();
 
   return DAILY_PCA_MODEL_PROMISE;
@@ -989,6 +1069,7 @@ async function renderPcaDia(rows, dateStr){
     wrap.innerHTML = emptyMsg("Faltam os ficheiros de features ou clusters.");
     return;
   }
+  DAILY_PCA_CLUSTER_EXPORT_BASE = new Map(model.clusters);
 
   const profiles = buildDailyProfiles(
     rows,
@@ -1017,32 +1098,19 @@ function renderDailyPcaScatter(container, points, availableClusters, selectedCpe
   const colors = DAILY_CLUSTER_COLORS;
   updateDailyPcaDescription(container.dataset.dateStr || "", points);
 
-  const activeClusterFilter = resolveDailyPcaClusterFilter(points, availableClusters);
-  const hasDeviation = points.some(p=>p.desvios > 0);
-  const hasWithoutDeviation = points.some(p=>p.desvios === 0);
-  const deviationFilter = DAILY_PCA_DEVIATION_FILTER === "with" && hasDeviation
-    ? "with"
-    : DAILY_PCA_DEVIATION_FILTER === "without" && hasWithoutDeviation
-      ? "without"
-      : "all";
-  DAILY_PCA_CLUSTER_FILTER = activeClusterFilter;
-  DAILY_PCA_DEVIATION_FILTER = deviationFilter;
+  const activeClusterFilters = resolveDailyPcaClusterFilters(points, availableClusters);
+  const activeDeviationFilters = resolveDailyPcaDeviationFilters(points);
+  const availableClusterFilters = dailyPcaAvailableClusterFilters(points, availableClusters);
+  DAILY_PCA_CLUSTER_FILTERS = activeClusterFilters;
+  DAILY_PCA_DEVIATION_FILTERS = activeDeviationFilters;
   const visiblePoints = points.filter(p=>{
-    const matchesCluster = activeClusterFilter === "all"
-      || (activeClusterFilter === "sem-cluster"
-        ? clusterValue(p.cluster) === "sem cluster"
-        : clusterValue(p.cluster) === activeClusterFilter);
-    const matchesDeviation = deviationFilter === "with"
-      ? p.desvios > 0
-      : deviationFilter === "without"
-        ? p.desvios === 0
-        : true;
-    return matchesCluster && matchesDeviation;
+    return dailyPcaMatchesCluster(p, activeClusterFilters)
+      && dailyPcaMatchesDeviation(p, activeDeviationFilters);
   });
-  const controls = renderDailyPcaFilters(points, availableClusters, activeClusterFilter, deviationFilter);
+  const controls = renderDailyPcaFilters(points, availableClusters, activeClusterFilters, activeDeviationFilters);
 
   if(!visiblePoints.length){
-    container.innerHTML = controls + emptyMsg(dailyPcaEmptyText(activeClusterFilter, deviationFilter)) +
+    container.innerHTML = controls + emptyMsg(dailyPcaEmptyText(activeClusterFilters, activeDeviationFilters, availableClusterFilters)) +
       `<div class="point-detail muted-detail">Escolhe outro filtro para ver pontos no PCA.</div>` +
       renderDailyClusterEditor(points, availableClusters);
     wireDailyPcaFilters(container, points, availableClusters);
@@ -1119,16 +1187,44 @@ function renderDailyPcaScatter(container, points, availableClusters, selectedCpe
 }
 
 function wireDailyPcaFilters(container, points, availableClusters){
+  container.querySelectorAll(".pca-filter-action").forEach(btn=>{
+    btn.addEventListener("click", ()=>{
+      if(btn.dataset.selectAll === "clusters"){
+        DAILY_PCA_CLUSTER_FILTERS = null;
+      }else if(btn.dataset.selectAll === "desvios"){
+        DAILY_PCA_DEVIATION_FILTERS = null;
+      }
+      renderDailyPcaScatter(container, points, availableClusters);
+    });
+  });
+
   container.querySelectorAll(".pca-filter-btn").forEach(btn=>{
     btn.addEventListener("click", ()=>{
       if(btn.disabled) return;
-      const filter = btn.dataset.filter || "all";
-      if(filter === "desvios"){
-        DAILY_PCA_DEVIATION_FILTER = DAILY_PCA_DEVIATION_FILTER === "with" ? "all" : "with";
-      }else if(filter === "sem-desvios"){
-        DAILY_PCA_DEVIATION_FILTER = DAILY_PCA_DEVIATION_FILTER === "without" ? "all" : "without";
+      if(btn.dataset.status !== undefined){
+        const options = dailyPcaAvailableDeviationFilters(points);
+        const selected = new Set(DAILY_PCA_DEVIATION_FILTERS === null
+          ? options
+          : resolveDailyPcaDeviationFilters(points));
+        const status = btn.dataset.status;
+        if(selected.has(status)){
+          selected.delete(status);
+        }else if(options.includes(status)){
+          selected.add(status);
+        }
+        DAILY_PCA_DEVIATION_FILTERS = selected.size === options.length ? null : [...selected];
       }else{
-        DAILY_PCA_CLUSTER_FILTER = filter;
+        const options = dailyPcaAvailableClusterFilters(points, availableClusters);
+        const selected = new Set(DAILY_PCA_CLUSTER_FILTERS === null
+          ? options
+          : resolveDailyPcaClusterFilters(points, availableClusters));
+        const normalized = normalizeDailyPcaFilterValue(btn.dataset.filter);
+        if(selected.has(normalized)){
+          selected.delete(normalized);
+        }else if(options.includes(normalized)){
+          selected.add(normalized);
+        }
+        DAILY_PCA_CLUSTER_FILTERS = selected.size === options.length ? null : [...selected];
       }
       renderDailyPcaScatter(container, points, availableClusters);
     });
@@ -1198,6 +1294,59 @@ function applyDailyClusterManual(container, points, availableClusters, cpe, clus
   renderDailyPcaScatter(container, points, availableClusters, cpe);
 }
 
+function buildAssignedClustersCsv(points, availableClusters){
+  const valid = new Set(availableClusters.map(normalizeCluster));
+  const rows = new Map();
+
+  DAILY_PCA_CLUSTER_EXPORT_BASE.forEach((cluster, cpe)=>{
+    const normalized = normalizeCluster(cluster);
+    if(cpe && valid.has(normalized)) rows.set(cpe, normalized);
+  });
+
+  points.forEach(p=>{
+    const normalized = normalizeCluster(p.cluster);
+    if(p.cpe && valid.has(normalized)) rows.set(p.cpe, normalized);
+  });
+
+  Object.entries(readDailyClusterOverrides()).forEach(([cpe, cluster])=>{
+    const normalized = normalizeCluster(cluster);
+    if(cpe && valid.has(normalized)) rows.set(cpe, normalized);
+  });
+
+  const body = [...rows.entries()]
+    .sort((a,b)=>a[0].localeCompare(b[0]))
+    .map(([cpe, cluster])=>`${csvCell(cpe)},${csvCell(cluster)}`);
+  return ["CPE,cluster", ...body].join("\r\n") + "\r\n";
+}
+function setClusterSaveStatus(container, text, mode="info"){
+  const status = container.querySelector(".pca-save-status");
+  if(!status) return;
+  status.textContent = text;
+  status.dataset.mode = mode;
+}
+async function saveAssignedClustersCsv(container, points, availableClusters){
+  const btn = container.querySelector(".pca-save-clusters");
+  if(btn) btn.disabled = true;
+  setClusterSaveStatus(container, "A preparar CSV...", "info");
+
+  try{
+    const csv = buildAssignedClustersCsv(points, availableClusters);
+    const result = await saveTextAsFile("clusters_cpe_atribuidos.csv", csv);
+    if(result === "saved"){
+      setClusterSaveStatus(container, "CSV guardado.", "ok");
+    }else if(result === "download"){
+      setClusterSaveStatus(container, "CSV descarregado.", "ok");
+    }else{
+      setClusterSaveStatus(container, "Gravacao cancelada.", "info");
+    }
+  }catch(e){
+    console.error(e);
+    setClusterSaveStatus(container, "Nao foi possivel guardar o CSV.", "error");
+  }finally{
+    if(btn) btn.disabled = false;
+  }
+}
+
 function wireDailyPcaDetailEditor(container, points, availableClusters){
   const select = container.querySelector(".daily-detail-cluster-select");
   if(select){
@@ -1237,6 +1386,7 @@ function renderDailyClusterEditor(points, availableClusters){
   const editable = points
     .filter(p=>p.canEditCluster || p.manualCluster)
     .sort((a,b)=>a.cpe.localeCompare(b.cpe));
+  const manualCount = countDailyClusterOverrides();
 
   if(!editable.length) return "";
 
@@ -1263,9 +1413,13 @@ function renderDailyClusterEditor(points, availableClusters){
   return `<div class="pca-cluster-editor">
     <div class="pca-editor-head">
       <h4>Atribuição manual de clusters</h4>
-      <span>${editable.length} CPE${editable.length===1?"":"s"} sem cluster normal</span>
+      <div class="pca-editor-actions">
+        <span>${manualCount} alteração${manualCount===1?"":"es"} manual${manualCount===1?"":"is"}</span>
+        <button type="button" class="pca-save-clusters">Guardar CSV</button>
+      </div>
     </div>
     <div class="pca-edit-list">${rows}</div>
+    <div class="pca-save-status" aria-live="polite"></div>
   </div>`;
 }
 
@@ -1283,6 +1437,11 @@ function wireDailyClusterEditor(container, points, availableClusters){
       applyDailyClusterManual(container, points, availableClusters, btn.dataset.cpe, "");
     });
   });
+
+  const saveBtn = container.querySelector(".pca-save-clusters");
+  if(saveBtn){
+    saveBtn.addEventListener("click", ()=>saveAssignedClustersCsv(container, points, availableClusters));
+  }
 }
 
 function emptyMsg(t){ return `<div class="empty"><p>${t}</p></div>`; }

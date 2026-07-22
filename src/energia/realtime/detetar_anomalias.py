@@ -278,17 +278,29 @@ def carregar_clusters_atribuidos(
     df = df.dropna(subset=["cluster"]).copy()
     df["cluster"] = df["cluster"].astype(int)
 
-    n_lidos = 0
+    n_novos = 0
+    n_atualizados = 0
     for row in df.itertuples(index=False):
-        if row.CPE in cluster_map:
+        cluster_atribuido = int(row.cluster)
+        cluster_atual = cluster_map.get(row.CPE)
+        if cluster_atual == cluster_atribuido:
             continue
-        cluster_map[row.CPE] = int(row.cluster)
+        if cluster_atual is None:
+            n_novos += 1
+        else:
+            n_atualizados += 1
+        cluster_map[row.CPE] = cluster_atribuido
         cluster_origem[row.CPE] = "atribuido"
-        n_lidos += 1
 
-    if n_lidos:
+    if n_novos or n_atualizados:
+        detalhe = []
+        if n_novos:
+            detalhe.append(f"{n_novos} novos")
+        if n_atualizados:
+            detalhe.append(f"{n_atualizados} atualizados")
         logger.info(
-            f"  {Cor.DIM}Clusters atribuidos carregados:{Cor.RESET} {n_lidos}"
+            f"  {Cor.DIM}Clusters atribuidos carregados:{Cor.RESET} "
+            + ", ".join(detalhe)
         )
 
 
@@ -641,6 +653,16 @@ def imprimir_resumo(
     logger.info("")
 
 
+def _texto_cluster(cluster: Optional[int], origem: str) -> str:
+    cluster_str = f"Cluster {cluster}" if cluster is not None else "sem cluster"
+    if cluster is not None:
+        if origem.startswith("estimado"):
+            cluster_str += " (estimado)"
+        elif origem == "atribuido":
+            cluster_str += " (atribuido)"
+    return cluster_str
+
+
 def _imprimir_bloco_desvio(r: ResultadoCPE, logger: logging.Logger):
     if r.direcao == "acima":
         icone, cor = "🔴", Cor.VERMELHO
@@ -651,9 +673,7 @@ def _imprimir_bloco_desvio(r: ResultadoCPE, logger: logging.Logger):
 
     pct = ((r.consumo_real - r.consumo_esperado)
            / max(abs(r.consumo_esperado), 0.001) * 100)
-    cluster_str = f"Cluster {r.cluster}" if r.cluster is not None else "sem cluster"
-    if r.cluster is not None and r.cluster_origem != "historico":
-        cluster_str += " (estimado)"
+    cluster_str = _texto_cluster(r.cluster, r.cluster_origem)
     z_str = f"{r.z_score:+.2f}" + ("⁺" if abs(r.z_real) > Z_CAP else "")
 
     logger.info(
@@ -929,9 +949,7 @@ def gerar_grafico_alerta(r: ResultadoCPE, df_cpe: pd.DataFrame) -> Path:
 
     pct = ((r.consumo_real - r.consumo_esperado)
            / max(abs(r.consumo_esperado), 0.001) * 100)
-    cluster_str = f"Cluster {r.cluster}" if r.cluster is not None else "sem cluster"
-    if r.cluster is not None and r.cluster_origem != "historico":
-        cluster_str += " (estimado)"
+    cluster_str = _texto_cluster(r.cluster, r.cluster_origem)
     conf_str = "" if r.confianca == "alta" else "  ⚠ baixa confiança"
 
     ax.set_title(

@@ -217,10 +217,22 @@
   .legend span{display:inline-flex;align-items:center;gap:7px}
   .legend i{width:14px;height:3px;border-radius:2px;display:inline-block}
   .legend i.dotline{height:0;border-top:2px dashed currentColor;background:none}
-  .pca-filter-bar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:0 0 12px}
+  .pca-filter-panel{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:14px 18px;
+    align-items:start;margin:0 0 12px}
+  .pca-filter-group{display:grid;gap:6px}
+  .pca-filter-head{display:flex;align-items:center;justify-content:flex-start;gap:8px}
+  .pca-filter-label{font-size:11px;font-weight:800;color:var(--ink-4);text-transform:uppercase;
+    letter-spacing:.06em}
+  .pca-filter-action{border:0;background:transparent;color:var(--accent);font-size:12px;
+    font-weight:800;cursor:pointer;padding:2px 0}
+  .pca-filter-action:hover{text-decoration:underline}
+  .pca-filter-bar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:0}
   .pca-filter-btn{border:1px solid var(--line-2);background:var(--paper-2);color:var(--ink-3);
-    border-radius:8px;padding:7px 10px;font-size:12px;font-weight:800;text-transform:uppercase;
-    letter-spacing:.04em;cursor:pointer}
+    border-radius:8px;padding:7px 10px;font-size:13px;font-weight:700;letter-spacing:0;cursor:pointer;
+    display:inline-flex;align-items:center;gap:7px}
+  .pca-filter-btn::before{content:"";width:14px;height:3px;border-radius:2px;
+    background:var(--cluster-color,var(--accent));display:inline-block}
+  .pca-filter-pipe{color:var(--ink-4);font-weight:700}
   .pca-filter-btn b{font-family:var(--font-mono);font-size:13px;color:var(--ink)}
   .pca-filter-btn:hover:not(:disabled){border-color:var(--cluster-color,var(--accent));
     color:var(--cluster-color,var(--accent))}
@@ -228,6 +240,7 @@
     border-color:color-mix(in srgb,var(--cluster-color,var(--accent)) 45%,var(--line));
     color:color-mix(in srgb,var(--cluster-color,var(--accent)) 78%,#111827)}
   .pca-filter-btn:disabled{opacity:.45;cursor:not-allowed}
+  @media(max-width:860px){.pca-filter-panel{grid-template-columns:1fr}}
   .clickable-point{cursor:pointer;outline:none}
   .clickable-point:hover{filter:drop-shadow(0 4px 8px rgba(18,24,38,.18))}
   .clickable-point.is-selected{stroke:var(--ink)!important;stroke-width:3!important}
@@ -264,6 +277,15 @@
   .pca-editor-head h4{font-family:var(--font-display);font-size:16px;font-weight:600;color:var(--ink)}
   .pca-editor-head span{font-size:12px;font-weight:700;color:var(--ink-4);text-transform:uppercase;
     letter-spacing:.05em}
+  .pca-editor-actions{display:flex;align-items:center;justify-content:flex-end;gap:10px;flex-wrap:wrap}
+  .pca-save-clusters{font-family:var(--font-body);font-size:12px;font-weight:800;border:1px solid var(--accent);
+    border-radius:8px;background:var(--accent);color:#fff;padding:7px 10px;cursor:pointer;
+    text-transform:uppercase;letter-spacing:.04em}
+  .pca-save-clusters:hover:not(:disabled){filter:brightness(.96)}
+  .pca-save-clusters:disabled{opacity:.55;cursor:wait}
+  .pca-save-status{min-height:18px;margin-top:8px;font-size:12px;font-weight:700;color:var(--ink-4)}
+  .pca-save-status[data-mode="ok"]{color:var(--ok)}
+  .pca-save-status[data-mode="error"]{color:var(--high)}
   .pca-edit-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:8px}
   .pca-edit-row{display:grid;grid-template-columns:minmax(0,1fr) 110px 64px;align-items:center;
     gap:8px;border:1px solid var(--line);background:var(--paper);border-radius:10px;padding:8px 10px}
