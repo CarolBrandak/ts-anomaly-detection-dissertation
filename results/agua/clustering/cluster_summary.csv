@@ -1,0 +1,3 @@
+cluster,n_contadores,consumo_total_m3,consumo_medio_dia_m3,dias_medios_com_dados,pct_madrugada,pct_laboral,pct_noite,hora_pico_media,pct_hora_pico_media
+0,123,8598.708,3.9681,17.4,18.14,45.51,33.07,21,6.3
+1,67,89772.03,70.5589,18.3,1.72,86.53,10.53,11,11.88

@@ -1,0 +1,15 @@
+2026-07-23 15:50:56 [INFO] [96m→ A pedir dados ao BaZe (276 CPEs)...[0m
+2026-07-23 15:50:59 [WARNING] 
+[93mInterrompido pelo utilizador.[0m
+2026-07-23 15:51:11 [INFO] [96m→ A pedir dados ao BaZe (276 CPEs)...[0m
+2026-07-23 15:51:43 [INFO]   [2mClusters atribuidos carregados:[0m 22 novos
+2026-07-23 15:51:44 [INFO] 
+2026-07-23 15:51:44 [INFO] [1m══════════════════════════════════════════════════════════════════════[0m
+2026-07-23 15:51:44 [INFO] [1m  DETEÇÃO DE ANOMALIAS — 2026-07-16[0m
+2026-07-23 15:51:44 [INFO] [1m══════════════════════════════════════════════════════════════════════[0m
+2026-07-23 15:51:44 [INFO]   [2mTipo de dia:[0m  dia util
+2026-07-23 15:51:44 [INFO]   [2mFonte:[0m        BAZE
+2026-07-23 15:51:44 [INFO]   [2mCPEs c/ dados:[0m 0
+2026-07-23 15:51:44 [INFO]   [2mThreshold:[0m    |z| > 3.0 [2m(adaptativo a este tipo de dia)[0m
+2026-07-23 15:51:44 [INFO] 
+2026-07-23 15:51:44 [ERROR] [91mSem dados para 2026-07-16.[0m

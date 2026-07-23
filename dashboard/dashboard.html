@@ -56,7 +56,7 @@
       <a class="sub prediction-only" href="#perfil-horario">Perfil horário previsto</a>
       <a class="sub prediction-only" href="#maiores-consumos">Maiores consumos previstos</a>
       <a class="sub prediction-only" href="#tabela-previsao">Previsões por CPE</a>
-      <a class="main energy-only" href="#pca-dia">PCA do dia</a>
+      <a class="main" id="navPca" href="#pca-dia">PCA do dia</a>
     </nav>
   </aside>
 
@@ -133,17 +133,17 @@
     </div>
   </section>
 
-  <section id="pca-dia" class="energy-only">
+  <section id="pca-dia">
     <div class="sec-head">
       <span class="sec-kicker">PCA</span>
-      <h2>Exploração PCA do dia</h2>
+      <h2 id="pcaTitle">Exploração PCA do dia</h2>
     </div>
     <p class="sec-sub" id="pcaDiaSub">A carregar a projeção PCA do dia analisado...</p>
 
     <div class="panel">
       <div class="panel-head">
-        <h3>Perfil horário dos CPEs no dia</h3>
-        <span class="hint">cor = cluster histórico · contorno = CPE com desvio nesse dia</span>
+        <h3 id="pcaPanelTitle">Perfil horário dos CPEs no dia</h3>
+        <span class="hint" id="pcaPanelHint">cor = cluster histórico · contorno = CPE com desvio nesse dia</span>
       </div>
       <div class="panel-body" id="dailyPcaWrap"><div class="spinner"></div></div>
     </div>
@@ -162,10 +162,10 @@
         <p id="srcAnalise">Retrospetiva: <code>—</code></p>
         <p id="srcPrev">Previsão: <code>—</code></p>
       </div>
-      <div class="energy-only">
+      <div>
         <h5>Explorador PCA</h5>
-        <p>Consulta os clusters historicos dos CPEs com base no perfil horario medio de consumo.</p>
-        <a class="footer-link" href="../results/energia/interactive_pca_clusters.html" target="_blank" rel="noopener">
+        <p id="pcaExplorerText">Consulta os clusters historicos dos CPEs com base no perfil horario medio de consumo.</p>
+        <a class="footer-link" id="pcaExplorerLink" href="../results/energia/interactive_pca_clusters.html" target="_blank" rel="noopener">
           Abrir Explorador PCA
         </a>
       </div>

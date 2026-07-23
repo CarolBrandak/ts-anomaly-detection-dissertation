@@ -106,13 +106,13 @@ D19BA000196,0,,dia_util,0.0,0.0004,0.01,-0.04,-0.04,normal,normal,alta,16,histor
 D19BA063983,0,,dia_util,0.0,0.0,0.01,0.0,0.0,normal,normal,alta,20,historico dia_util,3.5
 D19BA093038,0,,dia_util,0.0,0.0,0.01,0.0,0.0,normal,normal,alta,18,historico dia_util,3.5
 D19BA093039,0,,dia_util,0.0,0.0002,0.01,-0.02,-0.02,normal,normal,alta,20,historico dia_util,3.5
-D19BA310997,0,,dia_util,0.0,0.0005,0.01,-0.05,-0.05,normal,normal,alta,14,historico dia_util,3.5
-D19BA341196,0,,dia_util,0.002,0.0015,0.01,0.05,0.05,normal,normal,baixa,2,historico dia_util (poucos dados),3.5
+D19BA310997,0,,dia_util,0.0,0.0005,0.01,-0.05,-0.05,normal,normal,alta,20,historico dia_util,3.5
+D19BA341196,0,,dia_util,0.002,0.0015,0.01,0.05,0.05,normal,normal,alta,20,historico dia_util,3.5
 D19BA343472,0,,dia_util,0.0,0.0,0.01,0.0,0.0,normal,normal,alta,20,historico dia_util,3.5
 D19BA343474,0,,dia_util,0.0,0.0,0.01,0.0,0.0,normal,normal,alta,17,historico dia_util,3.5
 D19BA343504,0,,dia_util,0.0,0.0002,0.01,-0.02,-0.02,normal,normal,alta,19,historico dia_util,3.5
 D19BX000010,0,,dia_util,0.0,0.0,0.01,0.0,0.0,normal,normal,alta,16,historico dia_util,3.5
-D19BX000034,0,,dia_util,0.0,0.0,0.01,0.0,0.0,normal,normal,baixa,2,historico dia_util (poucos dados),3.5
+D19BX000034,0,,dia_util,0.0,0.0053,0.0137,-0.39,-0.39,normal,normal,alta,18,historico dia_util,3.5
 D19BX000038,0,,dia_util,0.0,0.0,0.01,0.0,0.0,normal,normal,alta,9,historico dia_util,3.5
 D19BX000040,0,,dia_util,0.0,0.0035,0.01,-0.35,-0.35,normal,normal,alta,20,historico dia_util,3.5
 D19BX000041,0,,dia_util,0.515,0.0127,0.0493,10.0,10.18,desvio,acima,alta,15,historico dia_util,3.5

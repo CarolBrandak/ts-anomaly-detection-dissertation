@@ -21,6 +21,10 @@ const DATASETS = {
       alertHint: "cartões ordenados pelo tamanho do desvio · scroll dentro do painel",
       navDistribuicao: "Distribuição dos desvios",
       navDesvios: "Desvios detetados",
+      navPca: "PCA do dia",
+      pcaTitle: "Exploração PCA do dia",
+      pcaPanelTitle: "Perfil horário dos CPEs no dia",
+      pcaPanelHint: "cor = cluster histórico · contorno = CPE com desvio nesse dia",
     },
     footerHint: `Se quiseres forçar uma nova análise de energia, corre o programa
         <code>src/energia/realtime/detetar_anomalias.py</code> e atualiza a página.`,
@@ -39,7 +43,10 @@ const DATASETS = {
       pcaClusters: "../results/energia/clustering/clusters_cpe.csv",
       pcaAssignedClusters: "../results/energia/clustering/clusters_cpe_atribuidos.csv",
       pcaCoords:   "../results/energia/clustering/pca_clusters_cpe.csv"
-    }
+    },
+    pcaAssignedFilename: "clusters_cpe_atribuidos.csv",
+    pcaExplorerHref: "../results/energia/interactive_pca_clusters.html",
+    pcaExplorerText: "Consulta os clusters históricos dos CPEs com base no perfil horário médio de consumo."
   },
   agua: {
     label: "Água",
@@ -60,6 +67,10 @@ const DATASETS = {
       alertHint: "cartões de água ordenados pelo tamanho do desvio · scroll dentro do painel",
       navDistribuicao: "Distribuição da água",
       navDesvios: "Desvios de água",
+      navPca: "PCA da água",
+      pcaTitle: "Exploração PCA da água no dia",
+      pcaPanelTitle: "Perfil horário dos contadores no dia",
+      pcaPanelHint: "cor = cluster da água · contorno = contador com desvio nesse dia",
     },
     footerHint: `Para aparecerem dados de água, primeiro é preciso recolher e analisar os dados dos contadores.
         Lembrete: <code>python src/agua/realtime/detetar_anomalias.py --modo baze</code>.`,
@@ -72,8 +83,15 @@ const DATASETS = {
       missingQualityText: "Ainda não existem validações de água para apresentar.",
     },
     paths: {
-      alerts:      "../results/agua/realtime/alerts/analise_agua_{d}.csv"
-    }
+      alerts:      "../results/agua/realtime/alerts/analise_agua_{d}.csv",
+      pcaFeatures: "../results/agua/features/features_setA.csv",
+      pcaClusters: "../results/agua/clustering/clusters_contador.csv",
+      pcaAssignedClusters: "../results/agua/clustering/clusters_contador_atribuidos.csv",
+      pcaCoords:   "../results/agua/clustering/pca_clusters_contador.csv"
+    },
+    pcaAssignedFilename: "clusters_contador_atribuidos.csv",
+    pcaExplorerHref: "../results/agua/interactive_pca_clusters.html",
+    pcaExplorerText: "Consulta os clusters exploratórios dos contadores com base no perfil horário médio de água."
   }
 };
 let ACTIVE_DATASET = "energia";
@@ -126,6 +144,10 @@ function applyDatasetUI(){
   $("#dashboardSubtitle").textContent = cfg.subtitle;
   const runHint = $("#runHint");
   if(runHint) runHint.innerHTML = cfg.footerHint;
+  const pcaExplorerText = $("#pcaExplorerText");
+  if(pcaExplorerText) pcaExplorerText.textContent = cfg.pcaExplorerText || "";
+  const pcaExplorerLink = $("#pcaExplorerLink");
+  if(pcaExplorerLink) pcaExplorerLink.href = cfg.pcaExplorerHref || "#";
   Object.entries(cfg.titles).forEach(([id, text])=>{
     const el = $(`#${id}`);
     if(el) el.textContent = text;
@@ -143,6 +165,9 @@ async function setDataset(key){
   if(!DATASETS[key] || key === ACTIVE_DATASET) return;
   ACTIVE_DATASET = key;
   PATHS = DATASETS[ACTIVE_DATASET].paths;
+  DAILY_PCA_MODEL_PROMISE = null;
+  DAILY_PCA_CLUSTER_FILTERS = null;
+  DAILY_PCA_DEVIATION_FILTERS = null;
   applyDatasetUI();
   showLoading();
   await buildDayCalendar();
@@ -629,7 +654,7 @@ function renderHourlyProfile(container, rows){
 }
 
 let DAILY_PCA_MODEL_PROMISE = null;
-const DAILY_CLUSTER_STORAGE_KEY = "energia_daily_pca_manual_clusters_v1";
+const DAILY_CLUSTER_STORAGE_VERSION = "daily_pca_manual_clusters_v1";
 let DAILY_PCA_CLUSTER_FILTERS = null;
 let DAILY_PCA_DEVIATION_FILTERS = null;
 let DAILY_PCA_CLUSTER_EXPORT_BASE = new Map();
@@ -643,13 +668,16 @@ const DAILY_CLUSTER_COLORS = {
 
 function readDailyClusterOverrides(){
   try{
-    return JSON.parse(localStorage.getItem(DAILY_CLUSTER_STORAGE_KEY) || "{}");
+    return JSON.parse(localStorage.getItem(dailyClusterStorageKey()) || "{}");
   }catch(e){
     return {};
   }
 }
 function writeDailyClusterOverrides(overrides){
-  localStorage.setItem(DAILY_CLUSTER_STORAGE_KEY, JSON.stringify(overrides));
+  localStorage.setItem(dailyClusterStorageKey(), JSON.stringify(overrides));
+}
+function dailyClusterStorageKey(){
+  return `${ACTIVE_DATASET}_${DAILY_CLUSTER_STORAGE_VERSION}`;
 }
 function countDailyClusterOverrides(){
   return Object.keys(readDailyClusterOverrides()).length;
@@ -722,7 +750,7 @@ function updateDailyPcaDescription(dateStr, points){
 
   sub.innerHTML =
     `Dia analisado: <b>${prettyDate(dateStr)}</b>. ` +
-    `${points.length} CPEs projetados; ${withDeviation} com pelo menos um desvio no dia. ` +
+    `${points.length} ${activeDataset().entityPlural.toLowerCase()} projetados; ${withDeviation} com pelo menos um desvio no dia. ` +
     `<span class="pca-inline-counts">${parts.join(" · ")}</span>`;
 }
 function normalizeDailyPcaFilterValue(value){
@@ -773,7 +801,7 @@ function pcaFilterText(label, count){
 function dailyPcaEmptyText(activeClusterFilters, activeDeviationFilters, availableClusterFilters){
   if(!activeDeviationFilters.length) return "Sem filtros de desvio selecionados.";
   const alvo = dailyPcaClusterSelectionText(activeClusterFilters, availableClusterFilters);
-  return `Sem CPEs em ${alvo} para este dia.`;
+  return `Sem ${activeDataset().entityPlural.toLowerCase()} em ${alvo} para este dia.`;
 }
 function dailyPcaMatchesCluster(point, activeClusterFilters){
   return activeClusterFilters.includes(clusterValue(point.cluster));
@@ -900,7 +928,8 @@ async function loadDailyPcaModel(){
   if(DAILY_PCA_MODEL_PROMISE) return DAILY_PCA_MODEL_PROMISE;
 
   DAILY_PCA_MODEL_PROMISE = (async()=>{
-    const cfg = DATASETS.energia;
+    const cfg = activeDataset();
+    if(!cfg.paths.pcaFeatures || !cfg.paths.pcaClusters) return null;
     const [featuresRes, clustersRes, assignedClustersRes, coordsRes] = await Promise.all([
       fetchFixed(cfg.paths.pcaFeatures),
       fetchFixed(cfg.paths.pcaClusters),
@@ -1051,19 +1080,15 @@ async function renderPcaDia(rows, dateStr){
   const sub = $("#pcaDiaSub");
   if(!wrap || !sub) return;
 
-  if(ACTIVE_DATASET !== "energia"){
-    wrap.innerHTML = "";
-    return;
-  }
+  const cfg = activeDataset();
   if(!rows || !rows.length){
-    sub.textContent = "Sem analise de energia para projetar neste dia.";
+    sub.textContent = `Sem analise de ${cfg.label.toLowerCase()} para projetar neste dia.`;
     wrap.innerHTML = emptyMsg("Sem dados suficientes para PCA diario.");
     return;
   }
 
   wrap.innerHTML = '<div class="spinner"></div>';
   const model = await loadDailyPcaModel();
-  if(ACTIVE_DATASET !== "energia") return;
   if(!model){
     sub.textContent = "Nao foi possivel carregar os ficheiros de PCA.";
     wrap.innerHTML = emptyMsg("Faltam os ficheiros de features ou clusters.");
@@ -1078,7 +1103,7 @@ async function renderPcaDia(rows, dateStr){
     model.availableClusters,
   );
   if(profiles.length < 3){
-    sub.textContent = "Sem CPEs suficientes com perfil horario completo para este dia.";
+    sub.textContent = `Sem ${cfg.entityPlural.toLowerCase()} suficientes com perfil horario completo para este dia.`;
     wrap.innerHTML = emptyMsg("Sem dados suficientes para PCA diario.");
     return;
   }
@@ -1176,7 +1201,7 @@ function renderDailyPcaScatter(container, points, availableClusters, selectedCpe
       <span><i class="outline-dot"></i>com desvio no dia</span>
     </div>`;
   container.innerHTML = controls + legend + s +
-    `<div class="point-detail muted-detail">Clica num ponto para ver o detalhe do CPE.</div>` +
+    `<div class="point-detail muted-detail">Clica num ponto para ver o detalhe do ${activeDataset().entitySingular}.</div>` +
     renderDailyClusterEditor(points, availableClusters);
   wireDailyPcaFilters(container, points, availableClusters);
   wireDailyPcaDetails(container, points, availableClusters);
@@ -1232,6 +1257,7 @@ function wireDailyPcaFilters(container, points, availableClusters){
 }
 
 function renderDailyPcaPointDetail(p, availableClusters){
+  const cfg = activeDataset();
   const current = clusterValue(p.cluster);
   const options = availableClusters
     .map(c=>{
@@ -1247,7 +1273,7 @@ function renderDailyPcaPointDetail(p, availableClusters){
   return `<div class="point-detail">
     <div class="point-detail-head">
       <div>
-        <span class="point-kicker">CPE</span>
+        <span class="point-kicker">${escapeHtml(cfg.entitySingular)}</span>
         <h4>${escapeHtml(p.cpe)}</h4>
       </div>
       <span class="cluster-chip" style="--cluster-color:${clusterColor(p.cluster)}">${escapeHtml(chipText)}</span>
@@ -1331,7 +1357,7 @@ async function saveAssignedClustersCsv(container, points, availableClusters){
 
   try{
     const csv = buildAssignedClustersCsv(points, availableClusters);
-    const result = await saveTextAsFile("clusters_cpe_atribuidos.csv", csv);
+    const result = await saveTextAsFile(activeDataset().pcaAssignedFilename || "clusters_atribuidos.csv", csv);
     if(result === "saved"){
       setClusterSaveStatus(container, "CSV guardado.", "ok");
     }else if(result === "download"){
@@ -1877,6 +1903,7 @@ function showLoading(){
 }
 
 $("#refresh").addEventListener("click", ()=>{
+  DAILY_PCA_MODEL_PROMISE = null;
   showLoading();
   loadAll($("#dayPicker").value);
 });
