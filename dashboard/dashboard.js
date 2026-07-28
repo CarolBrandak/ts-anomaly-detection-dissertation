@@ -659,6 +659,7 @@ let FORECAST_COMPARE_STATE = {
   data:new Map(),
   selected:"",
   dates:[],
+  dateTypes:new Map(),
   forecastDate:null,
   forecastStart:0,
 };
@@ -705,6 +706,17 @@ function _normaliseForecastRealDays(realInput, dateStr){
     return realInput;
   }
   return realInput.length ? [{date:dateStr, rows:realInput}] : [];
+}
+
+function _forecastTipoDiaLabel(tipo){
+  if(tipo === "fim_semana") return "fim de semana";
+  if(tipo === "dia_util") return "dia util";
+  return tipoLabel(tipo);
+}
+
+function _forecastDateLabel(dateStr, dateTypes){
+  const tipo = dateTypes && dateTypes.get(dateStr);
+  return tipo ? `${prettyDate(dateStr)} (${_forecastTipoDiaLabel(tipo)})` : prettyDate(dateStr);
 }
 
 function _hourlyPath(values, X, Y){
@@ -784,10 +796,13 @@ function renderForecastComparison(realInput, predictionRes, dateStr){
   const dateIndex = new Map(dates.map((d,i)=>[d,i]));
   const totalPoints = dates.length * 24;
   const forecastStart = (dates.length - 1) * 24;
+  const dateTypes = new Map();
   const data = new Map();
   realDays.forEach(day=>{
     const dayIdx = dateIndex.get(day.date);
     if(dayIdx === undefined || !day.rows) return;
+    const tipoDia = day.rows.find(r=>r.tipo_dia)?.tipo_dia;
+    if(tipoDia) dateTypes.set(day.date, tipoDia);
     day.rows.forEach(r=>{
       const cpe = r.CPE;
       const h = +r.hora;
@@ -797,6 +812,7 @@ function renderForecastComparison(realInput, predictionRes, dateStr){
     });
   });
   predRows.forEach(r=>{
+    if(r.tipo_dia && !dateTypes.has(dateStr)) dateTypes.set(dateStr, r.tipo_dia);
     const cpe = r.CPE;
     const h = +r.hora;
     const prev = +r.previsao;
@@ -829,6 +845,7 @@ function renderForecastComparison(realInput, predictionRes, dateStr){
     data,
     selected: cpes.includes(FORECAST_COMPARE_STATE.selected) ? FORECAST_COMPARE_STATE.selected : cpes[0],
     dates,
+    dateTypes,
     forecastDate: dateStr,
     forecastStart,
   };
@@ -858,7 +875,7 @@ function drawForecastComparison(){
   const metrics = _compareMetrics(item, forecastStart, 24);
   const pointLabel = idx=>{
     const d = state.dates[Math.floor(idx/24)] || state.forecastDate || "";
-    return `${prettyDate(d)} ${String(idx % 24).padStart(2,"0")}h`;
+    return `${_forecastDateLabel(d, state.dateTypes)} ${String(idx % 24).padStart(2,"0")}h`;
   };
 
   let s = svgEl(W,H);
@@ -866,7 +883,7 @@ function drawForecastComparison(){
     const forecastX = X(forecastStart);
     s += `<rect x="${forecastX.toFixed(1)}" y="${padT}" width="${(X(lastIdx)-forecastX).toFixed(1)}"
       height="${innerH}" fill="var(--pred-soft)" opacity=".28">
-      <title>Dia previsto: ${prettyDate(state.forecastDate)}</title>
+      <title>Dia previsto: ${escapeHtml(_forecastDateLabel(state.forecastDate, state.dateTypes))}</title>
     </rect>`;
   }
   for(let k=0;k<=5;k++){
@@ -883,7 +900,7 @@ function drawForecastComparison(){
       stroke-dasharray="${isForecast ? "5 5" : "2 6"}" opacity="${isForecast ? .9 : .75}"/>`;
     const centerIdx = Math.min(startIdx + 11.5, lastIdx);
     s += `<text x="${X(centerIdx).toFixed(1)}" y="${H-padB+24}" font-size="11"
-      text-anchor="middle">${prettyDate(d)}</text>`;
+      text-anchor="middle">${escapeHtml(_forecastDateLabel(d, state.dateTypes))}</text>`;
   });
   s += `<line x1="${X(lastIdx).toFixed(1)}" y1="${padT}" x2="${X(lastIdx).toFixed(1)}" y2="${padT+innerH}"
     stroke="var(--line-2)" stroke-width="1" stroke-dasharray="2 6" opacity=".75"/>`;
@@ -923,7 +940,7 @@ function drawForecastComparison(){
     }
   });
 
-  s += `<text x="${padL+innerW/2}" y="${H-10}" font-size="11" text-anchor="middle">2 dias reais + dia previsto</text>`;
+  s += `<text x="${padL+innerW/2}" y="${H-10}" font-size="11" text-anchor="middle">4 dias reais + dia previsto</text>`;
   s += `<text x="16" y="${padT+innerH/2}" font-size="11" text-anchor="middle" transform="rotate(-90 16 ${padT+innerH/2})">${unitLabel()}</text>`;
   s += `</svg>`;
 
@@ -946,8 +963,8 @@ function drawForecastComparison(){
       ${s}
     </div>
     <div class="forecast-metrics">
-      <span>Contexto real: <b>${prettyDate(state.dates[0])} - ${prettyDate(state.dates[state.dates.length-2])}</b></span>
-      <span>Dia previsto: <b>${prettyDate(state.forecastDate)}</b></span>
+      <span>Contexto real: <b>${escapeHtml(_forecastDateLabel(state.dates[0], state.dateTypes))} - ${escapeHtml(_forecastDateLabel(state.dates[state.dates.length-2], state.dateTypes))}</b></span>
+      <span>Dia previsto: <b>${escapeHtml(_forecastDateLabel(state.forecastDate, state.dateTypes))}</b></span>
       <span>Horas comparadas: <b>${metrics.n}</b></span>
       <span>MAE: <b>${metrics.mae===null ? "-" : valueWithUnit(metrics.mae)}</b></span>
       <span>RMSE: <b>${metrics.rmse===null ? "-" : valueWithUnit(metrics.rmse)}</b></span>
