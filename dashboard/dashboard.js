@@ -99,6 +99,7 @@ let PATHS = DATASETS[ACTIVE_DATASET].paths;
 const CALENDAR_START_DATE = "2026-05-01"; // data a partir da qual há análises disponíveis
 const REINCIDENCIA_DIAS = 6; // dias anteriores a verificar para reincidência
 const SPARKLINE_DIAS = 6; // 6 dias anteriores + dia escolhido = 7 dias
+const FORECAST_CONTEXT_DAYS = 2; // dias reais antes do dia previsto
 
 /* ════════ Utilitários ════════ */
 const $ = s => document.querySelector(s);
@@ -412,6 +413,7 @@ async function buildDayCalendar(){
     renderOntem(null);
     renderAmanha(null, null);
     const todayStr = fmtDate(today);
+    renderForecastComparison([], null, todayStr);
     renderPcaDia(null, todayStr);
     $("#srcAnalise").innerHTML =
       `Retrospetiva: <code>${formatTemplate(PATHS.alerts, todayStr)} (não encontrado)</code>`;
@@ -651,6 +653,311 @@ function renderHourlyProfile(container, rows){
   s += `</svg>`;
   container.innerHTML =
     `<div class="legend"><span style="color:var(--pred)"><i style="background:var(--pred)"></i><span style="color:var(--ink-2)">consumo previsto por hora</span></span></div>` + s;
+}
+let FORECAST_COMPARE_STATE = {
+  cpes:[],
+  data:new Map(),
+  selected:"",
+  dates:[],
+  forecastDate:null,
+  forecastStart:0,
+};
+
+function _emptyHourlyArrays(totalPoints=24){
+  return {
+    real:Array(totalPoints).fill(null),
+    prev:Array(totalPoints).fill(null),
+    lo:Array(totalPoints).fill(null),
+    hi:Array(totalPoints).fill(null),
+    std:Array(totalPoints).fill(null),
+  };
+}
+
+function _ensureCompareRow(map, cpe, totalPoints=24){
+  if(!map.has(cpe)) map.set(cpe, _emptyHourlyArrays(totalPoints));
+  return map.get(cpe);
+}
+
+function _forecastWindowDates(dateStr){
+  return Array.from(
+    {length:FORECAST_CONTEXT_DAYS + 1},
+    (_,i)=>addDaysStr(dateStr, i - FORECAST_CONTEXT_DAYS)
+  );
+}
+
+async function fetchForecastComparisonRealDays(dateStr, selectedRows){
+  const dates = _forecastWindowDates(dateStr);
+  const days = await Promise.all(dates.map(async ds=>{
+    if(ds === dateStr) return {date:ds, rows:selectedRows || []};
+    try{
+      const res = await fetchByDate(PATHS.alerts, ds);
+      return {date:ds, rows:res ? parseCSV(res.text) : []};
+    }catch(e){
+      return {date:ds, rows:[]};
+    }
+  }));
+  return days;
+}
+
+function _normaliseForecastRealDays(realInput, dateStr){
+  if(!realInput) return [];
+  if(realInput.length && realInput[0] && Object.prototype.hasOwnProperty.call(realInput[0], "rows")){
+    return realInput;
+  }
+  return realInput.length ? [{date:dateStr, rows:realInput}] : [];
+}
+
+function _hourlyPath(values, X, Y){
+  const parts = [];
+  let active = false;
+  values.forEach((v,i)=>{
+    if(v === null || !Number.isFinite(v)){
+      active = false;
+      return;
+    }
+    parts.push(`${active ? "L" : "M"}${X(i).toFixed(1)} ${Y(v).toFixed(1)}`);
+    active = true;
+  });
+  return parts.join(" ");
+}
+
+function _hourlyBandPath(lo, hi, X, Y){
+  const upper = [], lower = [];
+  hi.forEach((v,i)=>{
+    if(v !== null && Number.isFinite(v) && lo[i] !== null && Number.isFinite(lo[i])){
+      upper.push([X(i), Y(v)]);
+      lower.push([X(i), Y(Math.max(0, lo[i]))]);
+    }
+  });
+  if(upper.length < 2) return "";
+  return `M${upper.map(p=>`${p[0].toFixed(1)} ${p[1].toFixed(1)}`).join(" L")} ` +
+    `L${lower.reverse().map(p=>`${p[0].toFixed(1)} ${p[1].toFixed(1)}`).join(" L")} Z`;
+}
+
+function _compareMetrics(item, start=0, count=24){
+  const pares = [];
+  for(let i=start; i<start+count; i++){
+    const real = item.real[i], prev = item.prev[i];
+    if(Number.isFinite(real) && Number.isFinite(prev)) pares.push({real, prev});
+  }
+  if(!pares.length) return {n:0, mae:null, mape:null, rmse:null};
+  const abs = pares.map(p=>Math.abs(p.real-p.prev));
+  const mae = abs.reduce((a,b)=>a+b,0)/abs.length;
+  const rmse = Math.sqrt(pares.reduce((a,p)=>a+Math.pow(p.real-p.prev,2),0)/pares.length);
+  const validMape = pares.filter(p=>Math.abs(p.real) > 0.001);
+  const mape = validMape.length
+    ? validMape.reduce((a,p)=>a+Math.abs((p.real-p.prev)/p.real),0)/validMape.length*100
+    : null;
+  return {n:pares.length, mae, mape, rmse};
+}
+
+function renderForecastComparison(realInput, predictionRes, dateStr){
+  const wrap = $("#forecastCompareWrap");
+  if(!wrap) return;
+  const cfg = activeDataset();
+  if(!cfg.hasPrediction){
+    wrap.innerHTML = "";
+    return;
+  }
+  const realDays = _normaliseForecastRealDays(realInput, dateStr);
+  if(!realDays.length || !realDays.some(d=>d.rows && d.rows.length)){
+    wrap.innerHTML = emptyMsg("Sem consumo real para construir a janela dos ultimos dias.");
+    return;
+  }
+  if(!predictionRes){
+    wrap.innerHTML = emptyCmd(
+      "Sem previsao para comparar",
+      `Nao encontrei a previsao guardada para ${prettyDate(dateStr)}.`,
+      formatTemplate(PATHS.predictions, dateStr)
+    );
+    return;
+  }
+
+  const predRows = parseCSV(predictionRes.text);
+  const hasHourlyPrediction = predRows.some(r=>r.hora !== "" && r.hora !== undefined);
+  if(!hasHourlyPrediction){
+    wrap.innerHTML = emptyMsg("Esta previsao e diaria e nao tem detalhe por hora para desenhar este grafico.");
+    return;
+  }
+
+  const dates = _forecastWindowDates(dateStr);
+  const dateIndex = new Map(dates.map((d,i)=>[d,i]));
+  const totalPoints = dates.length * 24;
+  const forecastStart = (dates.length - 1) * 24;
+  const data = new Map();
+  realDays.forEach(day=>{
+    const dayIdx = dateIndex.get(day.date);
+    if(dayIdx === undefined || !day.rows) return;
+    day.rows.forEach(r=>{
+      const cpe = r.CPE;
+      const h = +r.hora;
+      const real = +r.consumo_real;
+      if(!cpe || !Number.isInteger(h) || h < 0 || h > 23 || !Number.isFinite(real)) return;
+      _ensureCompareRow(data, cpe, totalPoints).real[dayIdx * 24 + h] = real;
+    });
+  });
+  predRows.forEach(r=>{
+    const cpe = r.CPE;
+    const h = +r.hora;
+    const prev = +r.previsao;
+    if(!cpe || !Number.isInteger(h) || h < 0 || h > 23 || !Number.isFinite(prev)) return;
+    const idx = forecastStart + h;
+    const item = _ensureCompareRow(data, cpe, totalPoints);
+    item.prev[idx] = prev;
+    item.std[idx] = +r.std;
+    item.lo[idx] = Number.isFinite(+r.low_2sigma) ? +r.low_2sigma : prev - 2*(+r.std || 0);
+    item.hi[idx] = Number.isFinite(+r.high_2sigma) ? +r.high_2sigma : prev + 2*(+r.std || 0);
+  });
+
+  const cpes = [...data.entries()]
+    .filter(([,item])=>item.real.some(Number.isFinite) && item.prev.some(Number.isFinite))
+    .map(([cpe,item])=>{
+      const total = item.real.reduce((a,v)=>a+(Number.isFinite(v)?v:0),0);
+      const m = _compareMetrics(item, forecastStart, 24);
+      return {cpe, total, mae:m.mae ?? -1};
+    })
+    .sort((a,b)=>b.total-a.total || a.cpe.localeCompare(b.cpe))
+    .map(x=>x.cpe);
+
+  if(!cpes.length){
+    wrap.innerHTML = emptyMsg("Nao ha CPEs com consumo real e previsao horaria no mesmo dia.");
+    return;
+  }
+
+  FORECAST_COMPARE_STATE = {
+    cpes,
+    data,
+    selected: cpes.includes(FORECAST_COMPARE_STATE.selected) ? FORECAST_COMPARE_STATE.selected : cpes[0],
+    dates,
+    forecastDate: dateStr,
+    forecastStart,
+  };
+  drawForecastComparison();
+}
+
+function drawForecastComparison(){
+  const wrap = $("#forecastCompareWrap");
+  const state = FORECAST_COMPARE_STATE;
+  const item = state.data.get(state.selected);
+  if(!wrap || !item) return;
+
+  const W=920, H=390, padL=56, padR=24, padT=64, padB=56;
+  const innerW=W-padL-padR, innerH=H-padT-padB;
+  const totalPoints = item.real.length;
+  const lastIdx = Math.max(totalPoints - 1, 1);
+  const forecastStart = state.forecastStart || 0;
+  const values = [...item.real, ...item.prev, ...item.lo.map(v=>Number.isFinite(v)?Math.max(0,v):v), ...item.hi]
+    .filter(v=>v !== null && Number.isFinite(v));
+  let ymax = Math.max(...values, 1);
+  let ymin = Math.min(0, ...values);
+  const padY = (ymax-ymin)*0.14 || 1;
+  ymax += padY;
+  ymin = Math.max(0, ymin - padY);
+  const X = idx => padL + idx/lastIdx*innerW;
+  const Y = v => padT + (1-(v-ymin)/(ymax-ymin))*innerH;
+  const metrics = _compareMetrics(item, forecastStart, 24);
+  const pointLabel = idx=>{
+    const d = state.dates[Math.floor(idx/24)] || state.forecastDate || "";
+    return `${prettyDate(d)} ${String(idx % 24).padStart(2,"0")}h`;
+  };
+
+  let s = svgEl(W,H);
+  if(totalPoints > 24){
+    const forecastX = X(forecastStart);
+    s += `<rect x="${forecastX.toFixed(1)}" y="${padT}" width="${(X(lastIdx)-forecastX).toFixed(1)}"
+      height="${innerH}" fill="var(--pred-soft)" opacity=".28">
+      <title>Dia previsto: ${prettyDate(state.forecastDate)}</title>
+    </rect>`;
+  }
+  for(let k=0;k<=5;k++){
+    const v = ymin + k/5*(ymax-ymin), yy=Y(v);
+    s += `<line class="grid-line" x1="${padL}" y1="${yy}" x2="${padL+innerW}" y2="${yy}"/>`;
+    s += `<text x="${padL-10}" y="${yy+4}" font-size="11" text-anchor="end">${nice(v,1)}</text>`;
+  }
+  state.dates.forEach((d, dayIdx)=>{
+    const startIdx = dayIdx * 24;
+    const x = X(startIdx);
+    const isForecast = startIdx === forecastStart;
+    s += `<line x1="${x.toFixed(1)}" y1="${padT}" x2="${x.toFixed(1)}" y2="${padT+innerH}"
+      stroke="${isForecast ? "var(--pred)" : "var(--line-2)"}" stroke-width="${isForecast ? 1.8 : 1}"
+      stroke-dasharray="${isForecast ? "5 5" : "2 6"}" opacity="${isForecast ? .9 : .75}"/>`;
+    const centerIdx = Math.min(startIdx + 11.5, lastIdx);
+    s += `<text x="${X(centerIdx).toFixed(1)}" y="${H-padB+24}" font-size="11"
+      text-anchor="middle">${prettyDate(d)}</text>`;
+  });
+  s += `<line x1="${X(lastIdx).toFixed(1)}" y1="${padT}" x2="${X(lastIdx).toFixed(1)}" y2="${padT+innerH}"
+    stroke="var(--line-2)" stroke-width="1" stroke-dasharray="2 6" opacity=".75"/>`;
+
+  const bandPath = _hourlyBandPath(item.lo, item.hi, X, Y);
+  if(bandPath){
+    s += `<path d="${bandPath}" fill="var(--pred-soft)" stroke="none" opacity=".88">
+      <title>Intervalo esperado da previsao (+/-2 sigma)</title>
+    </path>`;
+    const hiPath = _hourlyPath(item.hi, X, Y);
+    const loPath = _hourlyPath(item.lo.map(v=>Number.isFinite(v)?Math.max(0,v):v), X, Y);
+    s += `<path d="${hiPath}" fill="none" stroke="var(--pred)" stroke-width="1.2" stroke-dasharray="3 5" opacity=".55"/>`;
+    s += `<path d="${loPath}" fill="none" stroke="var(--pred)" stroke-width="1.2" stroke-dasharray="3 5" opacity=".55"/>`;
+  }
+
+  const predPath = _hourlyPath(item.prev, X, Y);
+  const realPath = _hourlyPath(item.real, X, Y);
+  s += `<path d="${predPath}" fill="none" stroke="var(--pred)" stroke-width="2.6"
+        stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="8 7"/>`;
+  s += `<path d="${realPath}" fill="none" stroke="var(--ink)" stroke-width="2.8"
+        stroke-linejoin="round" stroke-linecap="round"/>`;
+
+  item.real.forEach((real,idx)=>{
+    if(Number.isFinite(real)){
+      s += `<circle cx="${X(idx).toFixed(1)}" cy="${Y(real).toFixed(1)}" r="2.5"
+        fill="var(--ink)">
+        <title>${pointLabel(idx)} real: ${valueWithUnit(real)}</title>
+      </circle>`;
+    }
+  });
+  item.prev.forEach((prev,idx)=>{
+    if(Number.isFinite(prev)){
+      s += `<circle cx="${X(idx).toFixed(1)}" cy="${Y(prev).toFixed(1)}" r="3.2"
+        fill="var(--paper-2)" stroke="var(--pred)" stroke-width="1.6">
+        <title>${pointLabel(idx)} previsao: ${valueWithUnit(prev)}</title>
+      </circle>`;
+    }
+  });
+
+  s += `<text x="${padL+innerW/2}" y="${H-10}" font-size="11" text-anchor="middle">2 dias reais + dia previsto</text>`;
+  s += `<text x="16" y="${padT+innerH/2}" font-size="11" text-anchor="middle" transform="rotate(-90 16 ${padT+innerH/2})">${unitLabel()}</text>`;
+  s += `</svg>`;
+
+  const options = state.cpes.map(cpe=>
+    `<option value="${escapeHtml(cpe)}"${cpe===state.selected ? " selected" : ""}>${escapeHtml(cpe)}</option>`
+  ).join("");
+  const mape = metrics.mape === null ? "-" : `${nice(metrics.mape,1)}%`;
+  wrap.innerHTML = `
+    <div class="forecast-chart-box">
+      <label class="forecast-cpe-picker">
+        <span>CPE</span>
+        <select id="forecastCpeSelect" aria-label="Escolher CPE para comparar real e previsao">
+          ${options}
+        </select>
+      </label>
+      <div class="forecast-legend" aria-hidden="true">
+        <span><i class="real"></i> real</span>
+        <span><i class="pred"></i> previsao</span>
+      </div>
+      ${s}
+    </div>
+    <div class="forecast-metrics">
+      <span>Contexto real: <b>${prettyDate(state.dates[0])} - ${prettyDate(state.dates[state.dates.length-2])}</b></span>
+      <span>Dia previsto: <b>${prettyDate(state.forecastDate)}</b></span>
+      <span>Horas comparadas: <b>${metrics.n}</b></span>
+      <span>MAE: <b>${metrics.mae===null ? "-" : valueWithUnit(metrics.mae)}</b></span>
+      <span>RMSE: <b>${metrics.rmse===null ? "-" : valueWithUnit(metrics.rmse)}</b></span>
+      <span>MAPE: <b>${mape}</b></span>
+    </div>`;
+
+  $("#forecastCpeSelect").addEventListener("change", e=>{
+    FORECAST_COMPARE_STATE.selected = e.target.value;
+    drawForecastComparison();
+  });
 }
 
 let DAILY_PCA_MODEL_PROMISE = null;
@@ -1855,8 +2162,31 @@ async function loadAll(dateStr){
     }catch(e){}
   }
 
-  const reincidencias = aRes ? await fetchReincidencias(selectedDate) : new Map();
-  const sparkHistory = aRes ? await fetchSparklineHistory(selectedDate, alertCpes) : new Map();
+  const comparePredictionPromise = activeDataset().hasPrediction && aRes
+    ? fetchByDate(PATHS.predictions, selectedDate)
+    : Promise.resolve(null);
+  const forecastRealDaysPromise = activeDataset().hasPrediction && aRes
+    ? fetchForecastComparisonRealDays(selectedDate, aRows)
+    : Promise.resolve([]);
+  const reincidenciasPromise = aRes ? fetchReincidencias(selectedDate) : Promise.resolve(new Map());
+  const sparkHistoryPromise = aRes ? fetchSparklineHistory(selectedDate, alertCpes) : Promise.resolve(new Map());
+
+  const [comparePredictionRes, forecastRealDays] = await Promise.all([
+    comparePredictionPromise,
+    forecastRealDaysPromise,
+  ]);
+  try{
+    renderForecastComparison(forecastRealDays, comparePredictionRes, selectedDate);
+  }catch(e){
+    console.error(e);
+    const wrap = $("#forecastCompareWrap");
+    if(wrap) wrap.innerHTML = emptyMsg("Nao foi possivel desenhar a comparacao real vs previsao.");
+  }
+
+  const [reincidencias, sparkHistory] = await Promise.all([
+    reincidenciasPromise,
+    sparkHistoryPromise,
+  ]);
 
   renderOntem(aRes, reincidencias, sparkHistory);
   await renderPcaDia(aRows, selectedDate);
