@@ -56,7 +56,7 @@
       <a class="sub prediction-only" href="#perfil-horario">Perfil horário previsto</a>
       <a class="sub prediction-only" href="#maiores-consumos">Maiores consumos previstos</a>
       <a class="sub prediction-only" href="#tabela-previsao">Previsões por CPE</a>
-      <a class="sub prediction-only" href="#comparacao-previsao">Real vs previsão</a>
+      <a class="sub" id="navComparacao" href="#comparacao-previsao">Real vs previsão</a>
       <a class="main" id="navPca" href="#pca-dia">PCA do dia</a>
     </nav>
   </aside>
@@ -134,17 +134,17 @@
     </div>
   </section>
 
-  <section class="prediction-only" id="comparacao-previsao">
+  <section id="comparacao-previsao">
     <div class="sec-head">
-      <span class="sec-kicker">Comparação</span>
-      <h2>Real vs previsão</h2>
+      <span class="sec-kicker" id="compareKicker">Comparação</span>
+      <h2 id="compareTitle">Real vs previsão</h2>
     </div>
-    <p class="sec-sub">Mostra os 2 dias reais anteriores e a previsão do dia analisado, permitindo comparar com o real quando esse dia já tem dados.</p>
+    <p class="sec-sub" id="compareSub">Mostra os 4 dias reais anteriores e a previsão do dia analisado, permitindo comparar com o real quando esse dia já tem dados.</p>
 
     <div class="panel">
       <div class="panel-head">
-        <h3>Real vs previsão por CPE</h3>
-        <span class="hint">linha contínua = real · tracejado = previsão · faixa = intervalo esperado</span>
+        <h3 id="comparePanelTitle">Real vs previsão por CPE</h3>
+        <span class="hint" id="comparePanelHint">linha contínua = real · tracejado = previsão · faixa = intervalo esperado</span>
       </div>
       <div class="panel-body" id="forecastCompareWrap"><div class="spinner"></div></div>
     </div>

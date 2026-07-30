@@ -21,6 +21,12 @@ const DATASETS = {
       alertHint: "cartões ordenados pelo tamanho do desvio · scroll dentro do painel",
       navDistribuicao: "Distribuição dos desvios",
       navDesvios: "Desvios detetados",
+      navComparacao: "Real vs previsão",
+      compareKicker: "Comparação",
+      compareTitle: "Real vs previsão",
+      compareSub: "Mostra os dias reais anteriores e a previsão do dia analisado, permitindo comparar com o real quando esse dia já tem dados.",
+      comparePanelTitle: "Real vs previsão por CPE",
+      comparePanelHint: "linha contínua = real · tracejado = previsão · faixa = intervalo esperado",
       navPca: "PCA do dia",
       pcaTitle: "Exploração PCA do dia",
       pcaPanelTitle: "Perfil horário dos CPEs no dia",
@@ -67,6 +73,12 @@ const DATASETS = {
       alertHint: "cartões de água ordenados pelo tamanho do desvio · scroll dentro do painel",
       navDistribuicao: "Distribuição da água",
       navDesvios: "Desvios de água",
+      navComparacao: "Consumo da água",
+      compareKicker: "Consumo",
+      compareTitle: "Consumo da água",
+      compareSub: "Mostra o consumo horário real dos contadores apenas no dia analisado.",
+      comparePanelTitle: "Consumo real por contador",
+      comparePanelHint: "linha contínua = consumo real do dia · sem previsão de água",
       navPca: "PCA da água",
       pcaTitle: "Exploração PCA da água no dia",
       pcaPanelTitle: "Perfil horário dos contadores no dia",
@@ -99,7 +111,10 @@ let PATHS = DATASETS[ACTIVE_DATASET].paths;
 const CALENDAR_START_DATE = "2026-05-01"; // data a partir da qual há análises disponíveis
 const REINCIDENCIA_DIAS = 6; // dias anteriores a verificar para reincidência
 const SPARKLINE_DIAS = 6; // 6 dias anteriores + dia escolhido = 7 dias
-const FORECAST_CONTEXT_DAYS = 2; // dias reais antes do dia previsto
+const FORECAST_CONTEXT_DAYS = 4; // dias reais antes do dia previsto
+const WATER_NIGHT_HOURS = [0, 1, 2, 3, 4, 5, 6];
+const WATER_NIGHT_THRESHOLD_M3 = 0.01; // 10 litros
+const WATER_NIGHT_MIN_CONSECUTIVE_HOURS = 3;
 
 /* ════════ Utilitários ════════ */
 const $ = s => document.querySelector(s);
@@ -127,6 +142,44 @@ function addDaysStr(dateStr, n){
 function activeDataset(){ return DATASETS[ACTIVE_DATASET]; }
 function unitLabel(){ return activeDataset().unit; }
 function valueWithUnit(n, dec=1){ return `${nice(n, dec)} ${unitLabel()}`; }
+function compareEntityId(a,b){
+  return String(a).localeCompare(String(b), "pt", {numeric:true, sensitivity:"base"});
+}
+function normaliseSearchText(value){
+  return String(value ?? "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+}
+function matchesEntitySearch(id, query){
+  const q = normaliseSearchText(query).trim();
+  return !q || normaliseSearchText(id).includes(q);
+}
+function chartAxisDomain(values){
+  const nums = values.filter(v=>v !== null && Number.isFinite(v));
+  const fallbackSpan = unitLabel() === "m³" ? 0.01 : 1;
+  if(!nums.length) return {ymin:0, ymax:fallbackSpan, decimals:unitLabel() === "m³" ? 3 : 1};
+
+  const minVal = Math.min(...nums);
+  const maxVal = Math.max(...nums);
+  let ymin = minVal < 0 ? minVal : 0;
+  let ymax = maxVal;
+
+  if(ymin === ymax){
+    const span = Math.max(Math.abs(ymax) * 0.2, fallbackSpan);
+    ymin = ymin < 0 ? ymin - span : 0;
+    ymax = ymax + span;
+  }else{
+    const pad = Math.max((ymax - ymin) * 0.12, fallbackSpan * 0.08);
+    ymin = ymin < 0 ? ymin - pad : 0;
+    ymax = ymax + pad;
+  }
+
+  if(ymax <= ymin) ymax = ymin + fallbackSpan;
+  const range = Math.abs(ymax - ymin);
+  const decimals = range < 0.02 ? 3 : range < 0.2 ? 2 : range < 2 ? 1 : 0;
+  return {ymin, ymax, decimals};
+}
 function escapeHtml(value){
   return String(value ?? "").replace(/[&<>"']/g, ch=>({
     "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;"
@@ -169,6 +222,7 @@ async function setDataset(key){
   DAILY_PCA_MODEL_PROMISE = null;
   DAILY_PCA_CLUSTER_FILTERS = null;
   DAILY_PCA_DEVIATION_FILTERS = null;
+  DAILY_PCA_VIEW_DOMAIN = null;
   applyDatasetUI();
   showLoading();
   await buildDayCalendar();
@@ -658,8 +712,11 @@ let FORECAST_COMPARE_STATE = {
   cpes:[],
   data:new Map(),
   selected:"",
+  search:"",
   dates:[],
   dateTypes:new Map(),
+  mode:"forecast",
+  coverage:null,
   forecastDate:null,
   forecastStart:0,
 };
@@ -719,6 +776,85 @@ function _forecastDateLabel(dateStr, dateTypes){
   return tipo ? `${prettyDate(dateStr)} (${_forecastTipoDiaLabel(tipo)})` : prettyDate(dateStr);
 }
 
+function _missingHourIndexes(values, start=0, count=24){
+  const missing = [];
+  for(let i=start; i<start+count; i++){
+    if(!Number.isFinite(values[i])) missing.push(i - start);
+  }
+  return missing;
+}
+
+function _hourList(hours){
+  return hours.map(h=>`${String(h).padStart(2,"0")}h`).join(", ");
+}
+
+function _negativeConsumptionHours(values){
+  return values
+    .map((v,h)=>({hour:h, value:v}))
+    .filter(p=>Number.isFinite(p.value) && p.value < 0);
+}
+
+function _continuousNightConsumptionRuns(values){
+  const runs = [];
+  let current = [];
+  WATER_NIGHT_HOURS.forEach(h=>{
+    const v = values[h];
+    if(Number.isFinite(v) && v > WATER_NIGHT_THRESHOLD_M3){
+      current.push({hour:h, value:v});
+    }else{
+      if(current.length >= WATER_NIGHT_MIN_CONSECUTIVE_HOURS) runs.push(current);
+      current = [];
+    }
+  });
+  if(current.length >= WATER_NIGHT_MIN_CONSECUTIVE_HOURS) runs.push(current);
+  return runs;
+}
+
+function _formatHourValueList(points){
+  return points
+    .map(p=>`${String(p.hour).padStart(2,"0")}h (${nice(p.value,3)} m³)`)
+    .join(", ");
+}
+
+function _formatNightRuns(runs){
+  return runs.map(run=>{
+    const first = run[0].hour;
+    const last = run[run.length - 1].hour;
+    const maxLiters = Math.max(...run.map(p=>p.value * 1000));
+    return `${String(first).padStart(2,"0")}h-${String(last).padStart(2,"0")}h (máx. ${nice(maxLiters,0)} L/h)`;
+  }).join("; ");
+}
+
+function _coverageSummary(data){
+  const rows = [...data.entries()].map(([cpe,item])=>{
+    const missingHours = _missingHourIndexes(item.real);
+    const negativeHours = _negativeConsumptionHours(item.real);
+    const nightRuns = _continuousNightConsumptionRuns(item.real);
+    return {
+      cpe,
+      hoursWithData: 24 - missingHours.length,
+      missingHours,
+      negativeHours,
+      nightRuns,
+    };
+  });
+  const incomplete = rows.filter(r=>r.missingHours.length > 0);
+  const negativeConsumption = rows.filter(r=>r.negativeHours.length > 0);
+  const continuousNightConsumption = rows.filter(r=>r.nightRuns.length > 0);
+  const zeroConsumption = rows.filter(r=>{
+    const values = (data.get(r.cpe)?.real || []).filter(Number.isFinite);
+    return values.length && values.every(v=>Math.abs(v) < 0.000001);
+  });
+  return {
+    total: rows.length,
+    complete: rows.length - incomplete.length,
+    incomplete,
+    negativeConsumption,
+    continuousNightConsumption,
+    zeroConsumption,
+  };
+}
+
 function _hourlyPath(values, X, Y){
   const parts = [];
   let active = false;
@@ -768,7 +904,7 @@ function renderForecastComparison(realInput, predictionRes, dateStr){
   if(!wrap) return;
   const cfg = activeDataset();
   if(!cfg.hasPrediction){
-    wrap.innerHTML = "";
+    renderDailyConsumptionOnly(realInput, dateStr);
     return;
   }
   const realDays = _normaliseForecastRealDays(realInput, dateStr);
@@ -832,7 +968,7 @@ function renderForecastComparison(realInput, predictionRes, dateStr){
       const m = _compareMetrics(item, forecastStart, 24);
       return {cpe, total, mae:m.mae ?? -1};
     })
-    .sort((a,b)=>b.total-a.total || a.cpe.localeCompare(b.cpe))
+    .sort((a,b)=>compareEntityId(a.cpe, b.cpe))
     .map(x=>x.cpe);
 
   if(!cpes.length){
@@ -844,10 +980,65 @@ function renderForecastComparison(realInput, predictionRes, dateStr){
     cpes,
     data,
     selected: cpes.includes(FORECAST_COMPARE_STATE.selected) ? FORECAST_COMPARE_STATE.selected : cpes[0],
+    search:"",
     dates,
     dateTypes,
+    mode:"forecast",
+    coverage:null,
     forecastDate: dateStr,
     forecastStart,
+  };
+  drawForecastComparison();
+}
+
+function renderDailyConsumptionOnly(analysisRows, dateStr){
+  const wrap = $("#forecastCompareWrap");
+  if(!wrap) return;
+  const rows = Array.isArray(analysisRows) ? analysisRows : [];
+  if(!rows.length){
+    wrap.innerHTML = emptyMsg(`Sem consumo real para mostrar neste dia.`);
+    return;
+  }
+
+  const totalPoints = 24;
+  const dateTypes = new Map();
+  const tipoDia = rows.find(r=>r.tipo_dia)?.tipo_dia;
+  if(tipoDia) dateTypes.set(dateStr, tipoDia);
+
+  const data = new Map();
+  rows.forEach(r=>{
+    const cpe = r.CPE;
+    const h = +r.hora;
+    const real = +r.consumo_real;
+    if(!cpe || !Number.isInteger(h) || h < 0 || h > 23 || !Number.isFinite(real)) return;
+    _ensureCompareRow(data, cpe, totalPoints).real[h] = real;
+  });
+
+  const cpes = [...data.entries()]
+    .filter(([,item])=>item.real.some(Number.isFinite))
+    .map(([cpe,item])=>({
+      cpe,
+      total:item.real.reduce((a,v)=>a+(Number.isFinite(v)?v:0),0),
+    }))
+    .sort((a,b)=>compareEntityId(a.cpe, b.cpe))
+    .map(x=>x.cpe);
+
+  if(!cpes.length){
+    wrap.innerHTML = emptyMsg(`Sem ${activeDataset().entityPlural.toLowerCase()} com consumo real neste dia.`);
+    return;
+  }
+
+  FORECAST_COMPARE_STATE = {
+    cpes,
+    data,
+    selected: cpes.includes(FORECAST_COMPARE_STATE.selected) ? FORECAST_COMPARE_STATE.selected : cpes[0],
+    search:"",
+    dates:[dateStr],
+    dateTypes,
+    mode:"real-only",
+    coverage:_coverageSummary(data),
+    forecastDate:null,
+    forecastStart:0,
   };
   drawForecastComparison();
 }
@@ -858,6 +1049,8 @@ function drawForecastComparison(){
   const item = state.data.get(state.selected);
   if(!wrap || !item) return;
 
+  const cfg = activeDataset();
+  const isForecastMode = state.mode !== "real-only";
   const W=920, H=390, padL=56, padR=24, padT=64, padB=56;
   const innerW=W-padL-padR, innerH=H-padT-padB;
   const totalPoints = item.real.length;
@@ -865,21 +1058,23 @@ function drawForecastComparison(){
   const forecastStart = state.forecastStart || 0;
   const values = [...item.real, ...item.prev, ...item.lo.map(v=>Number.isFinite(v)?Math.max(0,v):v), ...item.hi]
     .filter(v=>v !== null && Number.isFinite(v));
-  let ymax = Math.max(...values, 1);
-  let ymin = Math.min(0, ...values);
-  const padY = (ymax-ymin)*0.14 || 1;
-  ymax += padY;
-  ymin = Math.max(0, ymin - padY);
+  const yAxis = chartAxisDomain(values);
+  const ymin = yAxis.ymin;
+  const ymax = yAxis.ymax;
   const X = idx => padL + idx/lastIdx*innerW;
   const Y = v => padT + (1-(v-ymin)/(ymax-ymin))*innerH;
-  const metrics = _compareMetrics(item, forecastStart, 24);
+  const metrics = isForecastMode ? _compareMetrics(item, forecastStart, 24) : null;
+  const realVals = item.real.filter(Number.isFinite);
+  const realTotal = realVals.reduce((a,b)=>a+b,0);
+  const realAvg = realVals.length ? realTotal / realVals.length : null;
+  const realMax = realVals.length ? Math.max(...realVals) : null;
   const pointLabel = idx=>{
     const d = state.dates[Math.floor(idx/24)] || state.forecastDate || "";
     return `${_forecastDateLabel(d, state.dateTypes)} ${String(idx % 24).padStart(2,"0")}h`;
   };
 
   let s = svgEl(W,H);
-  if(totalPoints > 24){
+  if(isForecastMode && totalPoints > 24){
     const forecastX = X(forecastStart);
     s += `<rect x="${forecastX.toFixed(1)}" y="${padT}" width="${(X(lastIdx)-forecastX).toFixed(1)}"
       height="${innerH}" fill="var(--pred-soft)" opacity=".28">
@@ -889,37 +1084,55 @@ function drawForecastComparison(){
   for(let k=0;k<=5;k++){
     const v = ymin + k/5*(ymax-ymin), yy=Y(v);
     s += `<line class="grid-line" x1="${padL}" y1="${yy}" x2="${padL+innerW}" y2="${yy}"/>`;
-    s += `<text x="${padL-10}" y="${yy+4}" font-size="11" text-anchor="end">${nice(v,1)}</text>`;
+    s += `<text x="${padL-10}" y="${yy+4}" font-size="11" text-anchor="end">${nice(v,yAxis.decimals)}</text>`;
   }
-  state.dates.forEach((d, dayIdx)=>{
-    const startIdx = dayIdx * 24;
-    const x = X(startIdx);
-    const isForecast = startIdx === forecastStart;
-    s += `<line x1="${x.toFixed(1)}" y1="${padT}" x2="${x.toFixed(1)}" y2="${padT+innerH}"
-      stroke="${isForecast ? "var(--pred)" : "var(--line-2)"}" stroke-width="${isForecast ? 1.8 : 1}"
-      stroke-dasharray="${isForecast ? "5 5" : "2 6"}" opacity="${isForecast ? .9 : .75}"/>`;
-    const centerIdx = Math.min(startIdx + 11.5, lastIdx);
-    s += `<text x="${X(centerIdx).toFixed(1)}" y="${H-padB+24}" font-size="11"
-      text-anchor="middle">${escapeHtml(_forecastDateLabel(d, state.dateTypes))}</text>`;
-  });
+  if(ACTIVE_DATASET === "agua" && ymin < 0 && ymax > 0){
+    const zeroY = Y(0);
+    s += `<line class="zero-line" x1="${padL}" y1="${zeroY.toFixed(1)}" x2="${padL+innerW}" y2="${zeroY.toFixed(1)}">
+      <title>Linha do zero</title>
+    </line>`;
+    s += `<text class="zero-label" x="${padL+innerW-4}" y="${zeroY-6}" font-size="11" text-anchor="end">0</text>`;
+  }
+  if(isForecastMode){
+    state.dates.forEach((d, dayIdx)=>{
+      const startIdx = dayIdx * 24;
+      const x = X(startIdx);
+      const isForecast = startIdx === forecastStart;
+      s += `<line x1="${x.toFixed(1)}" y1="${padT}" x2="${x.toFixed(1)}" y2="${padT+innerH}"
+        stroke="${isForecast ? "var(--pred)" : "var(--line-2)"}" stroke-width="${isForecast ? 1.8 : 1}"
+        stroke-dasharray="${isForecast ? "5 5" : "2 6"}" opacity="${isForecast ? .9 : .75}"/>`;
+      const centerIdx = Math.min(startIdx + 11.5, lastIdx);
+      s += `<text x="${X(centerIdx).toFixed(1)}" y="${H-padB+24}" font-size="11"
+        text-anchor="middle">${escapeHtml(_forecastDateLabel(d, state.dateTypes))}</text>`;
+    });
+  }else{
+    [0,3,6,9,12,15,18,21,23].forEach(h=>{
+      s += `<line class="grid-line" x1="${X(h)}" y1="${padT}" x2="${X(h)}" y2="${padT+innerH}" opacity=".55"/>`;
+      s += `<text x="${X(h)}" y="${H-padB+24}" font-size="11" text-anchor="middle">${String(h).padStart(2,"0")}h</text>`;
+    });
+  }
   s += `<line x1="${X(lastIdx).toFixed(1)}" y1="${padT}" x2="${X(lastIdx).toFixed(1)}" y2="${padT+innerH}"
     stroke="var(--line-2)" stroke-width="1" stroke-dasharray="2 6" opacity=".75"/>`;
 
-  const bandPath = _hourlyBandPath(item.lo, item.hi, X, Y);
-  if(bandPath){
-    s += `<path d="${bandPath}" fill="var(--pred-soft)" stroke="none" opacity=".88">
-      <title>Intervalo esperado da previsao (+/-2 sigma)</title>
-    </path>`;
-    const hiPath = _hourlyPath(item.hi, X, Y);
-    const loPath = _hourlyPath(item.lo.map(v=>Number.isFinite(v)?Math.max(0,v):v), X, Y);
-    s += `<path d="${hiPath}" fill="none" stroke="var(--pred)" stroke-width="1.2" stroke-dasharray="3 5" opacity=".55"/>`;
-    s += `<path d="${loPath}" fill="none" stroke="var(--pred)" stroke-width="1.2" stroke-dasharray="3 5" opacity=".55"/>`;
+  if(isForecastMode){
+    const bandPath = _hourlyBandPath(item.lo, item.hi, X, Y);
+    if(bandPath){
+      s += `<path d="${bandPath}" fill="var(--pred-soft)" stroke="none" opacity=".88">
+        <title>Intervalo esperado da previsao (+/-2 sigma)</title>
+      </path>`;
+      const hiPath = _hourlyPath(item.hi, X, Y);
+      const loPath = _hourlyPath(item.lo.map(v=>Number.isFinite(v)?Math.max(0,v):v), X, Y);
+      s += `<path d="${hiPath}" fill="none" stroke="var(--pred)" stroke-width="1.2" stroke-dasharray="3 5" opacity=".55"/>`;
+      s += `<path d="${loPath}" fill="none" stroke="var(--pred)" stroke-width="1.2" stroke-dasharray="3 5" opacity=".55"/>`;
+    }
   }
 
-  const predPath = _hourlyPath(item.prev, X, Y);
   const realPath = _hourlyPath(item.real, X, Y);
-  s += `<path d="${predPath}" fill="none" stroke="var(--pred)" stroke-width="2.6"
-        stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="8 7"/>`;
+  if(isForecastMode){
+    const predPath = _hourlyPath(item.prev, X, Y);
+    s += `<path d="${predPath}" fill="none" stroke="var(--pred)" stroke-width="2.6"
+          stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="8 7"/>`;
+  }
   s += `<path d="${realPath}" fill="none" stroke="var(--ink)" stroke-width="2.8"
         stroke-linejoin="round" stroke-linecap="round"/>`;
 
@@ -931,49 +1144,148 @@ function drawForecastComparison(){
       </circle>`;
     }
   });
-  item.prev.forEach((prev,idx)=>{
-    if(Number.isFinite(prev)){
-      s += `<circle cx="${X(idx).toFixed(1)}" cy="${Y(prev).toFixed(1)}" r="3.2"
-        fill="var(--paper-2)" stroke="var(--pred)" stroke-width="1.6">
-        <title>${pointLabel(idx)} previsao: ${valueWithUnit(prev)}</title>
-      </circle>`;
-    }
-  });
+  if(isForecastMode){
+    item.prev.forEach((prev,idx)=>{
+      if(Number.isFinite(prev)){
+        s += `<circle cx="${X(idx).toFixed(1)}" cy="${Y(prev).toFixed(1)}" r="3.2"
+          fill="var(--paper-2)" stroke="var(--pred)" stroke-width="1.6">
+          <title>${pointLabel(idx)} previsao: ${valueWithUnit(prev)}</title>
+        </circle>`;
+      }
+    });
+  }
 
-  s += `<text x="${padL+innerW/2}" y="${H-10}" font-size="11" text-anchor="middle">4 dias reais + dia previsto</text>`;
+  s += `<text x="${padL+innerW/2}" y="${H-10}" font-size="11" text-anchor="middle">${isForecastMode ? `${FORECAST_CONTEXT_DAYS} dias reais + dia previsto` : "hora do dia"}</text>`;
   s += `<text x="16" y="${padT+innerH/2}" font-size="11" text-anchor="middle" transform="rotate(-90 16 ${padT+innerH/2})">${unitLabel()}</text>`;
   s += `</svg>`;
 
-  const options = state.cpes.map(cpe=>
+  const searchTerm = state.search || "";
+  const searchMatches = searchTerm.trim()
+    ? state.cpes.filter(cpe=>matchesEntitySearch(cpe, searchTerm))
+    : state.cpes;
+  const listedCpes = searchMatches.length
+    ? searchMatches
+    : (state.selected ? [state.selected] : []);
+  const options = [
+    ...(!searchMatches.length && searchTerm.trim()
+      ? [`<option value="" disabled>Sem resultados</option>`]
+      : []),
+    ...listedCpes.map(cpe=>
     `<option value="${escapeHtml(cpe)}"${cpe===state.selected ? " selected" : ""}>${escapeHtml(cpe)}</option>`
-  ).join("");
-  const mape = metrics.mape === null ? "-" : `${nice(metrics.mape,1)}%`;
-  wrap.innerHTML = `
-    <div class="forecast-chart-box">
-      <label class="forecast-cpe-picker">
-        <span>CPE</span>
-        <select id="forecastCpeSelect" aria-label="Escolher CPE para comparar real e previsao">
-          ${options}
-        </select>
-      </label>
-      <div class="forecast-legend" aria-hidden="true">
-        <span><i class="real"></i> real</span>
-        <span><i class="pred"></i> previsao</span>
-      </div>
-      ${s}
-    </div>
-    <div class="forecast-metrics">
-      <span>Contexto real: <b>${escapeHtml(_forecastDateLabel(state.dates[0], state.dateTypes))} - ${escapeHtml(_forecastDateLabel(state.dates[state.dates.length-2], state.dateTypes))}</b></span>
+    )
+  ].join("");
+  const mape = !metrics || metrics.mape === null ? "-" : `${nice(metrics.mape,1)}%`;
+  const selectorLabel = cfg.entitySingular === "CPE" ? "CPE" : "CONTADOR";
+  const legendHtml = isForecastMode
+    ? `<span><i class="real"></i> real</span><span><i class="pred"></i> previsao</span>`
+    : `<span><i class="real"></i> consumo real</span>`;
+  const metricsHtml = isForecastMode
+    ? `<span>Contexto real: <b>${escapeHtml(_forecastDateLabel(state.dates[0], state.dateTypes))} - ${escapeHtml(_forecastDateLabel(state.dates[state.dates.length-2], state.dateTypes))}</b></span>
       <span>Dia previsto: <b>${escapeHtml(_forecastDateLabel(state.forecastDate, state.dateTypes))}</b></span>
       <span>Horas comparadas: <b>${metrics.n}</b></span>
       <span>MAE: <b>${metrics.mae===null ? "-" : valueWithUnit(metrics.mae)}</b></span>
       <span>RMSE: <b>${metrics.rmse===null ? "-" : valueWithUnit(metrics.rmse)}</b></span>
-      <span>MAPE: <b>${mape}</b></span>
-    </div>`;
+      <span>MAPE: <b>${mape}</b></span>`
+    : `<span>Dia: <b>${escapeHtml(_forecastDateLabel(state.dates[0], state.dateTypes))}</b></span>
+      <span>Horas com dados: <b>${realVals.length}</b></span>
+      <span>Horas sem dados: <b>${24 - realVals.length}</b></span>
+      <span>Total: <b>${valueWithUnit(realTotal)}</b></span>
+      <span>Média/hora: <b>${realAvg===null ? "-" : valueWithUnit(realAvg)}</b></span>
+      <span>Máximo: <b>${realMax===null ? "-" : valueWithUnit(realMax)}</b></span>`;
+  const selectedMissingHours = _missingHourIndexes(item.real);
+  const selectedNegativeHours = _negativeConsumptionHours(item.real);
+  const selectedNightRuns = _continuousNightConsumptionRuns(item.real);
+  const coverage = state.coverage;
+  const missingHoursText = selectedMissingHours.length
+    ? _hourList(selectedMissingHours)
+    : "";
+  const negativePreview = coverage?.negativeConsumption?.slice(0, 6)
+    .map(r=>escapeHtml(r.cpe)).join(", ");
+  const nightPreview = coverage?.continuousNightConsumption?.slice(0, 6)
+    .map(r=>escapeHtml(r.cpe)).join(", ");
+  const warningHtml = !isForecastMode ? `
+    <div class="forecast-warnings">
+      <div class="forecast-warning-group counter-scope">
+        <div class="forecast-warning-title">Avisos do contador selecionado</div>
+        <div class="forecast-warning ${selectedMissingHours.length ? "warn" : "ok"}">
+          <strong>${selectedMissingHours.length ? "Dados incompletos neste contador" : "Dados completos neste contador"}</strong>
+          <span>${selectedMissingHours.length
+            ? `Faltam ${selectedMissingHours.length} hora(s): ${missingHoursText}.`
+            : "Existem registos para as 24 horas do dia."}</span>
+        </div>
+        ${ACTIVE_DATASET === "agua" && selectedNightRuns.length ? `
+          <div class="forecast-warning warn">
+            <strong>Consumo noturno contínuo acima de 10 L</strong>
+            <span>Este contador teve consumo superior a 10 L/h durante pelo menos ${WATER_NIGHT_MIN_CONSECUTIVE_HOURS} horas seguidas no período noturno: ${_formatNightRuns(selectedNightRuns)}.</span>
+          </div>` : ""}
+        ${selectedNegativeHours.length ? `
+          <div class="forecast-warning danger">
+            <strong>Consumo negativo detetado</strong>
+            <span>Este contador tem valores negativos em ${selectedNegativeHours.length} hora(s): ${_formatHourValueList(selectedNegativeHours)}.</span>
+          </div>` : ""}
+      </div>
+      ${(ACTIVE_DATASET === "agua" && coverage?.continuousNightConsumption?.length) || coverage?.negativeConsumption?.length ? `
+        <div class="forecast-warning-group day-scope">
+          <div class="forecast-warning-title">Avisos gerais do dia</div>
+          ${ACTIVE_DATASET === "agua" && coverage?.continuousNightConsumption?.length ? `
+            <div class="forecast-warning warn">
+              <strong>Possível consumo noturno contínuo</strong>
+              <span>${coverage.continuousNightConsumption.length} contador(es) têm pelo menos ${WATER_NIGHT_MIN_CONSECUTIVE_HOURS} horas noturnas seguidas acima de 10 L/h.${nightPreview ? ` Exemplos: ${nightPreview}.` : ""}</span>
+            </div>` : ""}
+          ${coverage?.negativeConsumption?.length ? `
+            <div class="forecast-warning danger">
+              <strong>Valores negativos no dia</strong>
+              <span>${coverage.negativeConsumption.length} contador(es) têm pelo menos uma hora com consumo negativo.${negativePreview ? ` Exemplos: ${negativePreview}.` : ""}</span>
+            </div>` : ""}
+        </div>` : ""}
+    </div>` : "";
+  wrap.innerHTML = `
+    <div class="forecast-chart-box">
+      <div class="forecast-cpe-picker">
+        <span>${selectorLabel}</span>
+        <input id="forecastCpeSearch" type="search"
+          placeholder="Pesquisar..."
+          value="${escapeHtml(searchTerm)}"
+          aria-label="Pesquisar ${escapeHtml(cfg.entitySingular)}">
+        <select id="forecastCpeSelect" aria-label="Escolher ${escapeHtml(cfg.entitySingular)} para ver o consumo">
+          ${options}
+        </select>
+        <em>${searchMatches.length}/${state.cpes.length}</em>
+      </div>
+      <div class="forecast-legend" aria-hidden="true">
+        ${legendHtml}
+      </div>
+      ${s}
+    </div>
+    <div class="forecast-metrics">
+      ${metricsHtml}
+    </div>
+    ${warningHtml}`;
 
   $("#forecastCpeSelect").addEventListener("change", e=>{
+    if(!e.target.value) return;
     FORECAST_COMPARE_STATE.selected = e.target.value;
     drawForecastComparison();
+  });
+  $("#forecastCpeSearch").addEventListener("input", e=>{
+    const cursor = e.target.selectionStart ?? e.target.value.length;
+    const query = e.target.value;
+    const matches = query.trim()
+      ? FORECAST_COMPARE_STATE.cpes.filter(cpe=>matchesEntitySearch(cpe, query))
+      : FORECAST_COMPARE_STATE.cpes;
+    FORECAST_COMPARE_STATE.search = query;
+    if(query.trim() && matches.length){
+      const exact = matches.find(cpe=>normaliseSearchText(cpe) === normaliseSearchText(query).trim());
+      FORECAST_COMPARE_STATE.selected = exact || matches[0];
+    }
+    drawForecastComparison();
+    requestAnimationFrame(()=>{
+      const input = $("#forecastCpeSearch");
+      if(input){
+        input.focus();
+        input.setSelectionRange(cursor, cursor);
+      }
+    });
   });
 }
 
@@ -982,6 +1294,8 @@ const DAILY_CLUSTER_STORAGE_VERSION = "daily_pca_manual_clusters_v1";
 let DAILY_PCA_CLUSTER_FILTERS = null;
 let DAILY_PCA_DEVIATION_FILTERS = null;
 let DAILY_PCA_CLUSTER_EXPORT_BASE = new Map();
+let DAILY_PCA_VIEW_DOMAIN = null;
+let DAILY_PCA_SUPPRESS_CLICK = false;
 const DAILY_CLUSTER_COLORS = {
   "0":"#4C97D4",
   "1":"#F5A623",
@@ -1134,6 +1448,69 @@ function dailyPcaMatchesDeviation(point, activeDeviationFilters){
   return (point.desvios > 0 && activeDeviationFilters.includes("with"))
     || (point.desvios === 0 && activeDeviationFilters.includes("without"));
 }
+
+function dailyPcaDefaultDomain(points){
+  const xs = points.map(p=>p.pc1), ys = points.map(p=>p.pc2);
+  let xmin=Math.min(...xs), xmax=Math.max(...xs), ymin=Math.min(...ys), ymax=Math.max(...ys);
+  if(xmin===xmax){ xmin-=1; xmax+=1; }
+  if(ymin===ymax){ ymin-=1; ymax+=1; }
+  const padx=(xmax-xmin)*0.12, pady=(ymax-ymin)*0.16;
+  return {xmin:xmin-padx, xmax:xmax+padx, ymin:ymin-pady, ymax:ymax+pady};
+}
+
+function dailyPcaDomainRanges(domain){
+  return {x:domain.xmax-domain.xmin, y:domain.ymax-domain.ymin};
+}
+
+function dailyPcaClampZoom(domain, baseDomain){
+  const base = dailyPcaDomainRanges(baseDomain);
+  const current = dailyPcaDomainRanges(domain);
+  const minX = base.x / 80;
+  const minY = base.y / 80;
+  const maxX = base.x;
+  const maxY = base.y;
+  const cx = (domain.xmin + domain.xmax) / 2;
+  const cy = (domain.ymin + domain.ymax) / 2;
+  const w = Math.min(Math.max(current.x, minX), maxX);
+  const h = Math.min(Math.max(current.y, minY), maxY);
+  let xmin = cx - w/2;
+  let xmax = cx + w/2;
+  let ymin = cy - h/2;
+  let ymax = cy + h/2;
+
+  if(w >= base.x){
+    xmin = baseDomain.xmin;
+    xmax = baseDomain.xmax;
+  }else{
+    if(xmin < baseDomain.xmin){ xmax += baseDomain.xmin - xmin; xmin = baseDomain.xmin; }
+    if(xmax > baseDomain.xmax){ xmin -= xmax - baseDomain.xmax; xmax = baseDomain.xmax; }
+  }
+
+  if(h >= base.y){
+    ymin = baseDomain.ymin;
+    ymax = baseDomain.ymax;
+  }else{
+    if(ymin < baseDomain.ymin){ ymax += baseDomain.ymin - ymin; ymin = baseDomain.ymin; }
+    if(ymax > baseDomain.ymax){ ymin -= ymax - baseDomain.ymax; ymax = baseDomain.ymax; }
+  }
+
+  return {xmin, xmax, ymin, ymax};
+}
+
+function dailyPcaScreenToData(evt, svg, domain, dims){
+  const rect = svg.getBoundingClientRect();
+  const sx = (evt.clientX - rect.left) / rect.width * dims.W;
+  const sy = (evt.clientY - rect.top) / rect.height * dims.H;
+  const px = Math.min(Math.max(sx, dims.padL), dims.padL + dims.innerW);
+  const py = Math.min(Math.max(sy, dims.padT), dims.padT + dims.innerH);
+  return {
+    sx,
+    sy,
+    x: domain.xmin + (px - dims.padL) / dims.innerW * (domain.xmax - domain.xmin),
+    y: domain.ymax - (py - dims.padT) / dims.innerH * (domain.ymax - domain.ymin),
+  };
+}
+
 function renderDailyPcaFilters(
   points,
   availableClusters,
@@ -1438,6 +1815,7 @@ async function renderPcaDia(rows, dateStr){
   }));
 
   wrap.dataset.dateStr = dateStr;
+  DAILY_PCA_VIEW_DOMAIN = null;
   updateDailyPcaDescription(dateStr, points);
   renderDailyPcaScatter(wrap, points, model.availableClusters);
 }
@@ -1467,34 +1845,42 @@ function renderDailyPcaScatter(container, points, availableClusters, selectedCpe
     return;
   }
 
-  const xs = visiblePoints.map(p=>p.pc1), ys = visiblePoints.map(p=>p.pc2);
-  let xmin=Math.min(...xs), xmax=Math.max(...xs), ymin=Math.min(...ys), ymax=Math.max(...ys);
-  if(xmin===xmax){ xmin-=1; xmax+=1; }
-  if(ymin===ymax){ ymin-=1; ymax+=1; }
-  const padx=(xmax-xmin)*0.12, pady=(ymax-ymin)*0.16;
-  xmin-=padx; xmax+=padx; ymin-=pady; ymax+=pady;
+  const baseDomain = dailyPcaDefaultDomain(visiblePoints);
+  const currentDomain = DAILY_PCA_VIEW_DOMAIN
+    ? dailyPcaClampZoom(DAILY_PCA_VIEW_DOMAIN, baseDomain)
+    : baseDomain;
+  DAILY_PCA_VIEW_DOMAIN = currentDomain;
+  const {xmin, xmax, ymin, ymax} = currentDomain;
   const X = v => padL + (v-xmin)/(xmax-xmin)*innerW;
   const Y = v => padT + (1-(v-ymin)/(ymax-ymin))*innerH;
   const tickVals = (min,max,n=5)=>Array.from({length:n},(_,i)=>min+i/(n-1)*(max-min));
 
-  let s = svgEl(W,H);
+  let s = `<svg class="chart pca-zoom-chart" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet" role="img" aria-label="PCA do dia">
+    <defs>
+      <clipPath id="dailyPcaPlotClip">
+        <rect x="${padL}" y="${padT}" width="${innerW}" height="${innerH}"></rect>
+      </clipPath>
+    </defs>`;
+  let plotLayer = `<g class="pca-pan-layer" clip-path="url(#dailyPcaPlotClip)">`;
+  let tickLabels = "";
   tickVals(xmin,xmax).forEach(v=>{
     const x=X(v);
-    s += `<line class="grid-line" x1="${x}" y1="${padT}" x2="${x}" y2="${padT+innerH}"/>`;
-    s += `<text x="${x}" y="${H-padB+22}" font-size="10.5" text-anchor="middle">${nice(v,1)}</text>`;
+    plotLayer += `<line class="grid-line" x1="${x}" y1="${padT}" x2="${x}" y2="${padT+innerH}"/>`;
+    tickLabels += `<text x="${x}" y="${H-padB+22}" font-size="10.5" text-anchor="middle">${nice(v,1)}</text>`;
   });
   tickVals(ymin,ymax).forEach(v=>{
     const y=Y(v);
-    s += `<line class="grid-line" x1="${padL}" y1="${y}" x2="${padL+innerW}" y2="${y}"/>`;
-    s += `<text x="${padL-10}" y="${y+4}" font-size="10.5" text-anchor="end">${nice(v,1)}</text>`;
+    plotLayer += `<line class="grid-line" x1="${padL}" y1="${y}" x2="${padL+innerW}" y2="${y}"/>`;
+    tickLabels += `<text x="${padL-10}" y="${y+4}" font-size="10.5" text-anchor="end">${nice(v,1)}</text>`;
   });
   if(xmin < 0 && xmax > 0){
-    s += `<line x1="${X(0)}" y1="${padT}" x2="${X(0)}" y2="${padT+innerH}" stroke="var(--ink-3)" stroke-width="1.2" opacity=".55"/>`;
+    plotLayer += `<line x1="${X(0)}" y1="${padT}" x2="${X(0)}" y2="${padT+innerH}" stroke="var(--ink-3)" stroke-width="1.2" opacity=".55"/>`;
   }
   if(ymin < 0 && ymax > 0){
-    s += `<line x1="${padL}" y1="${Y(0)}" x2="${padL+innerW}" y2="${Y(0)}" stroke="var(--ink-3)" stroke-width="1.2" opacity=".55"/>`;
+    plotLayer += `<line x1="${padL}" y1="${Y(0)}" x2="${padL+innerW}" y2="${Y(0)}" stroke="var(--ink-3)" stroke-width="1.2" opacity=".55"/>`;
   }
 
+  plotLayer += `<g class="pca-points-layer">`;
   visiblePoints
     .map(p=>({p, i:points.indexOf(p)}))
     .sort((a,b)=>a.p.desvios-b.p.desvios)
@@ -1505,12 +1891,14 @@ function renderDailyPcaScatter(container, points, availableClusters, selectedCpe
       const strokeW = hasDeviation ? 2.4 : 1.2;
       const radius = 5;
       const conf = p.baixa && p.baixa === p.desvios ? "baixa confianca" : "alta/normal";
-      s += `<circle class="pca-point clickable-point" data-point-index="${i}" tabindex="0"
+      plotLayer += `<circle class="pca-point clickable-point" data-point-index="${i}" tabindex="0"
               cx="${X(p.pc1).toFixed(1)}" cy="${Y(p.pc2).toFixed(1)}" r="${radius.toFixed(1)}"
               fill="${fill}" fill-opacity=".86" stroke="${stroke}" stroke-width="${strokeW}">
               <title>${escapeHtml(p.cpe)} · ${clusterLabel(p.cluster)} · ${p.hours}h · ${p.desvios} desvios · z max ${p.maxZ>=0?"+":""}${nice(p.maxZ,2)} · ${conf}</title>
             </circle>`;
     });
+  plotLayer += `</g></g>`;
+  s += plotLayer + tickLabels;
   s += `<text x="${padL+innerW/2}" y="${H-10}" font-size="11" text-anchor="middle">PC1</text>`;
   s += `<text x="16" y="${padT+innerH/2}" font-size="11" text-anchor="middle" transform="rotate(-90 16 ${padT+innerH/2})">PC2</text>`;
   s += `</svg>`;
@@ -1524,15 +1912,113 @@ function renderDailyPcaScatter(container, points, availableClusters, selectedCpe
       ${legendClusters}
       <span><i class="outline-dot"></i>com desvio no dia</span>
     </div>`;
-  container.innerHTML = controls + legend + s +
+  const zoomTools = `<div class="pca-zoom-tools">
+      <button type="button" class="pca-zoom-reset" data-pca-zoom-reset>Repor zoom</button>
+    </div>`;
+  container.innerHTML = controls + legend + zoomTools + s +
     `<div class="point-detail muted-detail">Clica num ponto para ver o detalhe do ${activeDataset().entitySingular}.</div>` +
     renderDailyClusterEditor(points, availableClusters);
   wireDailyPcaFilters(container, points, availableClusters);
+  wireDailyPcaZoom(container, points, availableClusters, baseDomain, {W,H,padL,padR,padT,padB,innerW,innerH});
   wireDailyPcaDetails(container, points, availableClusters);
   wireDailyClusterEditor(container, points, availableClusters);
   if(selectedCpe && visiblePoints.some(p=>p.cpe === selectedCpe)){
     showDailyPcaPointDetail(container, points, availableClusters, selectedCpe);
   }
+}
+
+function wireDailyPcaZoom(container, points, availableClusters, baseDomain, dims){
+  const svg = container.querySelector(".pca-zoom-chart");
+  const reset = container.querySelector("[data-pca-zoom-reset]");
+  if(!svg) return;
+
+  reset?.addEventListener("click", ()=>{
+    DAILY_PCA_VIEW_DOMAIN = null;
+    renderDailyPcaScatter(container, points, availableClusters);
+  });
+
+  svg.addEventListener("wheel", e=>{
+    e.preventDefault();
+    const domain = DAILY_PCA_VIEW_DOMAIN || baseDomain;
+    const focus = dailyPcaScreenToData(e, svg, domain, dims);
+    const factor = e.deltaY < 0 ? 0.92 : 1.08;
+    const width = (domain.xmax - domain.xmin) * factor;
+    const height = (domain.ymax - domain.ymin) * factor;
+    const rx = (focus.x - domain.xmin) / (domain.xmax - domain.xmin);
+    const ry = (focus.y - domain.ymin) / (domain.ymax - domain.ymin);
+    DAILY_PCA_VIEW_DOMAIN = dailyPcaClampZoom({
+      xmin: focus.x - width * rx,
+      xmax: focus.x + width * (1-rx),
+      ymin: focus.y - height * ry,
+      ymax: focus.y + height * (1-ry),
+    }, baseDomain);
+    renderDailyPcaScatter(container, points, availableClusters);
+  }, {passive:false});
+
+  let drag = null;
+  let dragFrame = null;
+  const renderDragDomain = domain=>{
+    if(dragFrame) cancelAnimationFrame(dragFrame);
+    dragFrame = requestAnimationFrame(()=>{
+      DAILY_PCA_VIEW_DOMAIN = domain;
+      renderDailyPcaScatter(container, points, availableClusters);
+      dragFrame = null;
+    });
+  };
+  const moveDrag = e=>{
+    if(!drag) return;
+    e.preventDefault();
+    const dx = e.clientX - drag.x;
+    const dy = e.clientY - drag.y;
+    const width = drag.domain.xmax - drag.domain.xmin;
+    const height = drag.domain.ymax - drag.domain.ymin;
+    const shiftX = -dx / dims.innerW * width;
+    const shiftY = dy / dims.innerH * height;
+    const nextDomain = dailyPcaClampZoom({
+      xmin: drag.domain.xmin + shiftX,
+      xmax: drag.domain.xmax + shiftX,
+      ymin: drag.domain.ymin + shiftY,
+      ymax: drag.domain.ymax + shiftY,
+    }, baseDomain);
+    drag.nextDomain = nextDomain;
+    drag.moved = drag.moved || Math.abs(dx) > 4 || Math.abs(dy) > 4;
+    renderDragDomain(nextDomain);
+  };
+  const endDrag = ()=>{
+    if(!drag) return;
+    if(dragFrame){
+      cancelAnimationFrame(dragFrame);
+      dragFrame = null;
+    }
+    if(drag.nextDomain){
+      DAILY_PCA_VIEW_DOMAIN = dailyPcaClampZoom(drag.nextDomain, baseDomain);
+    }
+    if(drag.moved){
+      DAILY_PCA_SUPPRESS_CLICK = true;
+      setTimeout(()=>{ DAILY_PCA_SUPPRESS_CLICK = false; }, 0);
+    }
+    drag = null;
+    document.body.classList.remove("pca-is-panning");
+    window.removeEventListener("pointermove", moveDrag);
+    window.removeEventListener("pointerup", endDrag);
+    window.removeEventListener("pointercancel", endDrag);
+    renderDailyPcaScatter(container, points, availableClusters);
+  };
+
+  svg.addEventListener("pointerdown", e=>{
+    if(e.button !== 0) return;
+    if(e.target?.classList?.contains("pca-point")) return;
+    e.preventDefault();
+    drag = {
+      x:e.clientX,
+      y:e.clientY,
+      domain:{...(DAILY_PCA_VIEW_DOMAIN || baseDomain)},
+    };
+    document.body.classList.add("pca-is-panning");
+    window.addEventListener("pointermove", moveDrag, {passive:false});
+    window.addEventListener("pointerup", endDrag);
+    window.addEventListener("pointercancel", endDrag);
+  });
 }
 
 function wireDailyPcaFilters(container, points, availableClusters){
@@ -1715,6 +2201,7 @@ function wireDailyPcaDetailEditor(container, points, availableClusters){
 
 function wireDailyPcaDetails(container, points, availableClusters){
   function show(circle){
+    if(DAILY_PCA_SUPPRESS_CLICK) return;
     const idx = +circle.dataset.pointIndex;
     const point = points[idx];
     if(!point) return;
@@ -2179,12 +2666,13 @@ async function loadAll(dateStr){
     }catch(e){}
   }
 
-  const comparePredictionPromise = activeDataset().hasPrediction && aRes
+  const hasPrediction = activeDataset().hasPrediction;
+  const comparePredictionPromise = hasPrediction && aRes
     ? fetchByDate(PATHS.predictions, selectedDate)
     : Promise.resolve(null);
-  const forecastRealDaysPromise = activeDataset().hasPrediction && aRes
+  const forecastRealDaysPromise = hasPrediction && aRes
     ? fetchForecastComparisonRealDays(selectedDate, aRows)
-    : Promise.resolve([]);
+    : Promise.resolve(aRows);
   const reincidenciasPromise = aRes ? fetchReincidencias(selectedDate) : Promise.resolve(new Map());
   const sparkHistoryPromise = aRes ? fetchSparklineHistory(selectedDate, alertCpes) : Promise.resolve(new Map());
 
