@@ -867,14 +867,20 @@ def validar_previsoes(
 
         tipo_dia = merge["tipo_dia"].iloc[0] if "tipo_dia" in merge.columns else "?"
 
+        soma_consumo_real = merge["real"].abs().sum()
+        wape = (
+            merge["erro_abs"].sum() / soma_consumo_real * 100
+            if soma_consumo_real > 0
+            else np.nan
+        )
+
         validacoes.append({
             "data"      : data_prevista,
             "tipo_dia"  : tipo_dia,
             "n_cpes"    : merge["CPE"].nunique(),
             "n_pontos"  : len(merge),
             "MAE"       : round(merge["erro_abs"].mean(), 2),
-            "MAPE"      : round(merge["erro_abs"].mean() /
-                                merge["real"].clip(lower=0.01).mean() * 100, 1),
+            "WAPE"      : round(float(wape), 1),
             "RMSE"      : round(float(np.sqrt((merge["erro"] ** 2).mean())), 2),
             "pct_em_1sigma": round(merge["dentro_1s"].mean() * 100, 1),
             "pct_em_2sigma": round(merge["dentro_2s"].mean() * 100, 1),

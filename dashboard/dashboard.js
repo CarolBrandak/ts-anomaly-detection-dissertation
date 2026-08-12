@@ -888,15 +888,15 @@ function _compareMetrics(item, start=0, count=24){
     const real = item.real[i], prev = item.prev[i];
     if(Number.isFinite(real) && Number.isFinite(prev)) pares.push({real, prev});
   }
-  if(!pares.length) return {n:0, mae:null, mape:null, rmse:null};
+  if(!pares.length) return {n:0, mae:null, wape:null, rmse:null};
   const abs = pares.map(p=>Math.abs(p.real-p.prev));
   const mae = abs.reduce((a,b)=>a+b,0)/abs.length;
   const rmse = Math.sqrt(pares.reduce((a,p)=>a+Math.pow(p.real-p.prev,2),0)/pares.length);
-  const validMape = pares.filter(p=>Math.abs(p.real) > 0.001);
-  const mape = validMape.length
-    ? validMape.reduce((a,p)=>a+Math.abs((p.real-p.prev)/p.real),0)/validMape.length*100
+  const realTotal = pares.reduce((a,p)=>a+Math.abs(p.real),0);
+  const wape = realTotal > 0
+    ? abs.reduce((a,b)=>a+b,0)/realTotal*100
     : null;
-  return {n:pares.length, mae, mape, rmse};
+  return {n:pares.length, mae, wape, rmse};
 }
 
 function renderForecastComparison(realInput, predictionRes, dateStr){
@@ -1174,7 +1174,7 @@ function drawForecastComparison(){
     `<option value="${escapeHtml(cpe)}"${cpe===state.selected ? " selected" : ""}>${escapeHtml(cpe)}</option>`
     )
   ].join("");
-  const mape = !metrics || metrics.mape === null ? "-" : `${nice(metrics.mape,1)}%`;
+  const wape = !metrics || metrics.wape === null ? "-" : `${nice(metrics.wape,1)}%`;
   const selectorLabel = cfg.entitySingular === "CPE" ? "CPE" : "CONTADOR";
   const legendHtml = isForecastMode
     ? `<span><i class="real"></i> real</span><span><i class="pred"></i> previsao</span>`
@@ -1185,7 +1185,7 @@ function drawForecastComparison(){
       <span>Horas comparadas: <b>${metrics.n}</b></span>
       <span>MAE: <b>${metrics.mae===null ? "-" : valueWithUnit(metrics.mae)}</b></span>
       <span>RMSE: <b>${metrics.rmse===null ? "-" : valueWithUnit(metrics.rmse)}</b></span>
-      <span>MAPE: <b>${mape}</b></span>`
+      <span>WAPE: <b>${wape}</b></span>`
     : `<span>Dia: <b>${escapeHtml(_forecastDateLabel(state.dates[0], state.dateTypes))}</b></span>
       <span>Horas com dados: <b>${realVals.length}</b></span>
       <span>Horas sem dados: <b>${24 - realVals.length}</b></span>
@@ -2583,7 +2583,7 @@ function renderQualidade(res){
   }
   let rows = parseCSV(res.text).map(r=>({
     data:r.data, tipo:r.tipo_dia, n:+r.n_cpes,
-    mae:+r.MAE, mape:+r.MAPE, rmse:+r.RMSE,
+    mae:+r.MAE, wape:+r.WAPE, rmse:+r.RMSE,
     p1:+r.pct_em_1sigma, p2:+r.pct_em_2sigma,
   })).filter(r=>r.data).sort((a,b)=>a.data<b.data?-1:1);
 
@@ -2616,7 +2616,7 @@ function renderQualidade(res){
   $("#qualTableHint").textContent = anyPartial
     ? "dias marcados têm cobertura parcial do BaZe (menos CPEs)"
     : "";
-  const head = `<tr><th>Dia</th><th>Tipo</th><th>CPEs</th><th>MAE</th><th>MAPE</th><th>RMSE</th><th>em ±1σ</th><th>em ±2σ</th></tr>`;
+  const head = `<tr><th>Dia</th><th>Tipo</th><th>CPEs</th><th>MAE</th><th>WAPE</th><th>RMSE</th><th>em ±1σ</th><th>em ±2σ</th></tr>`;
   const body = rows.map(r=>{
     const partial = r.n<100;
     const c1 = r.p1>=60 && r.p1<=80 ? "good":"";
@@ -2626,7 +2626,7 @@ function renderQualidade(res){
       <td style="text-align:left;color:var(--ink-3)">${tipoLabel(r.tipo)}</td>
       <td>${r.n}</td>
       <td>${nice(r.mae)}</td>
-      <td>${nice(r.mape,1)}%</td>
+      <td>${nice(r.wape,1)}%</td>
       <td>${nice(r.rmse)}</td>
       <td class="${c1}">${nice(r.p1,0)}%</td>
       <td class="${c2}">${nice(r.p2,0)}%</td>
